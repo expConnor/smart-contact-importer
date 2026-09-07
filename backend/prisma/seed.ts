@@ -1,8 +1,8 @@
-import 'dotenv/config';
 import { randomUUID } from 'node:crypto';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { hash, argon2id } from 'argon2';
 import { PrismaClient } from '../src/generated/prisma/client';
+import { env } from '../src/config/env';
 
 type SeedUser = { readonly email: string; readonly password: string };
 
@@ -20,15 +20,9 @@ const HASH_OPTIONS = {
   parallelism: 1,
 } as const;
 
-function requireEnv(name: string): string {
-  const value = process.env[name];
-  if (!value) throw new Error(`${name} is not set`);
-  return value;
-}
-
 async function main(): Promise<void> {
   const adapter = new PrismaPg({
-    connectionString: requireEnv('DATABASE_URL'),
+    connectionString: env.DATABASE_URL,
   });
   const prisma = new PrismaClient({ adapter });
 

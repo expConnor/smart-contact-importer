@@ -3,8 +3,14 @@
   // rootDir lives here, not in tsconfig.json: the editor's project spans
   // prisma.config.ts and prisma/, which sit outside src/ and would trip
   // TS6059. Only the build needs dist/main.js at the top level.
+  //
+  // tsBuildInfoFile lives INSIDE dist/ on purpose: nest-cli's deleteOutDir
+  // wipes dist/ before tsc runs, and a cache that survives that wipe tells
+  // tsc every output is current — it emits nothing and exits 0, leaving an
+  // empty dist/. Keeping the cache in dist/ makes the two settings agree.
   "compilerOptions": {
-    "rootDir": "./src"
+    "rootDir": "./src",
+    "tsBuildInfoFile": "./dist/tsconfig.build.tsbuildinfo"
   },
   "exclude": [
     "node_modules",

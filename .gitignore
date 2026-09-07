@@ -46,7 +46,6 @@ pnpm-debug.log*
 
 # ─── Caches ──────────────────────────────────────────────────────────────────
 .vite/
-node_modules/.vite/
 .cache/
 .eslintcache
 .turbo/
