@@ -145,13 +145,3 @@ If you run short on time, cut scope rather than cutting corners on the behaviour
 ## Deliverable
 
 A repository that runs from a clean clone with no API key and no manual setup beyond documented commands. Credentials in the README.
-
-A README of roughly half a page covering:
-
-- The two or three design decisions you'd defend in review, and what you traded away
-- How model output is validated, and what happens when validation fails
-- What you cut and why
-- What changes at 100x the volume
-- Where AI-assisted code was wrong and what you changed
-
-The README is read before the code. It's where a shortcut becomes a decision.
