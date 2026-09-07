@@ -1,0 +1,34 @@
+# Dev-only Postgres. Defaults are inline so a clean clone runs with no .env;
+# create one from .env.example only to override them.
+#
+# NOTE: no `version:` key — it is obsolete under the Compose Spec and warns.
+name: smart-contact-importer
+
+services:
+  db:
+    image: postgres:18-alpine # pinned: `latest` makes a clean clone non-reproducible
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-app}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-app}
+      POSTGRES_DB: ${POSTGRES_DB:-smart_contact_importer}
+    ports:
+      - "${DB_PORT:-5432}:5432"
+    volumes:
+      # Postgres 18 images set PGDATA=/var/lib/postgresql/18/docker and declare
+      # VOLUME /var/lib/postgresql. Mounting the old .../data path silently gives
+      # you a throwaway anonymous volume instead of persistence.
+      - pgdata:/var/lib/postgresql
+    healthcheck:
+      # Lets dependents wait on `condition: service_healthy` instead of sleeping.
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U ${POSTGRES_USER:-app} -d ${POSTGRES_DB:-smart_contact_importer}",
+        ]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 10s
+
+volumes:
+  pgdata:
