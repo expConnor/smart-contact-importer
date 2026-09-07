@@ -1,0 +1,4 @@
+# Prisma client output — generated on every `prisma generate`, never hand-edited.
+# The format script globs src/**/*.ts, which would otherwise rewrite all of it.
+src/generated/
+dist/

@@ -23,7 +23,9 @@ build/
 # prisma/migrations/ MUST be committed — the reviewer runs `prisma migrate deploy`.
 # Only ignore a generated client if schema.prisma sets a custom `output` path
 # outside node_modules; the default location is already covered above.
-backend/prisma/generated/
+# It lives under src/ so it stays inside the build's rootDir.
+backend/src/generated/
+
 
 # ─── Tests / coverage ────────────────────────────────────────────────────────
 coverage/

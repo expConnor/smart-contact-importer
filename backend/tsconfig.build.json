@@ -1,4 +1,17 @@
 {
   "extends": "./tsconfig.json",
-  "exclude": ["node_modules", "test", "dist", "**/*spec.ts"]
+  // rootDir lives here, not in tsconfig.json: the editor's project spans
+  // prisma.config.ts and prisma/, which sit outside src/ and would trip
+  // TS6059. Only the build needs dist/main.js at the top level.
+  "compilerOptions": {
+    "rootDir": "./src"
+  },
+  "exclude": [
+    "node_modules",
+    "test",
+    "dist",
+    "**/*spec.ts",
+    "prisma",
+    "prisma.config.ts"
+  ]
 }
