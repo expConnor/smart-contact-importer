@@ -12,9 +12,12 @@
     "rootDir": "./src",
     "tsBuildInfoFile": "./dist/tsconfig.build.tsbuildinfo"
   },
+  // src/test holds the supertest harness. It imports @nestjs/testing and
+  // supertest — devDependencies — so it must never reach dist/.
   "exclude": [
     "node_modules",
     "test",
+    "src/test",
     "dist",
     "**/*spec.ts",
     "prisma",

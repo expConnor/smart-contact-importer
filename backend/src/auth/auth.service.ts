@@ -4,6 +4,9 @@ import { LoginDto } from './dto/login.dto';
 import { AuthUser } from './auth.types';
 import { AppError } from '../common/errors/app.error';
 
+const THROWAWAY_HASH =
+  '5feceb66ffc86f38d952786c6d696c79c2dbc239dd4e91b46729d73a27fb57e9';
+
 @Injectable()
 export class AuthService {
   constructor(private readonly prisma: PrismaService) {}
