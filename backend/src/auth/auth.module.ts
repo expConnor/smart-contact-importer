@@ -4,6 +4,7 @@ import type { StringValue } from 'ms';
 import { env } from '../config/env';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
+import { MeController } from './me.controller';
 import { TokenService } from './token.service';
 
 @Module({
@@ -13,7 +14,7 @@ import { TokenService } from './token.service';
       signOptions: { expiresIn: env.JWT_EXPIRES_IN as StringValue },
     }),
   ],
-  controllers: [AuthController],
+  controllers: [AuthController, MeController],
   providers: [AuthService, TokenService],
   exports: [TokenService],
 })

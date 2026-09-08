@@ -1,8 +1,8 @@
 import { Controller, Get } from '@nestjs/common';
-import { AppError } from './common/errors/app.error';
-import { CurrentUser } from './auth/decorators/current-user.decorator';
-import { PrismaService } from './prisma/prisma.service';
-import type { PublicUser } from './auth/types';
+import { AppError } from '../common/errors/app.error';
+import { CurrentUser } from './decorators/current-user.decorator';
+import { PrismaService } from '../prisma/prisma.service';
+import type { PublicUser } from './types';
 
 @Controller({ path: 'me', version: '1' })
 export class MeController {
