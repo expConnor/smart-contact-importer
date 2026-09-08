@@ -11,13 +11,11 @@ import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
 import { clearCookieOptions, COOKIE_NAME, cookieOptions } from './cookie';
 import type { PublicUser } from './types';
-import { Public } from './decorators/public.decorator';
 
 @Controller({ path: 'auth', version: '1' })
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
-  @Public()
   @Post('login')
   @HttpCode(HttpStatus.OK)
   async login(
@@ -35,7 +33,6 @@ export class AuthController {
     return user;
   }
 
-  @Public()
   @Post('logout')
   @HttpCode(HttpStatus.NO_CONTENT)
   logout(@Res({ passthrough: true }) res: Response): void {

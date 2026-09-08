@@ -208,8 +208,7 @@ describe('POST /v1/auth/logout', () => {
   });
 
   it('answers 204 when no cookie is sent at all', async () => {
-    // @Public() on the handler. Without it the global guard 401s the exact
-    // case that most needs to work: logging out of a dead session.
+    // Nothing guards logout, so a dead session can still clear its cookie.
     const res = await ctx.http().post('/v1/auth/logout');
 
     expect(res.status).toBe(204);

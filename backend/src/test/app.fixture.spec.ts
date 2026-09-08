@@ -3,10 +3,8 @@ import type { Request } from 'express';
 import { createTestApp, findCookie, setCookies } from './app.fixture';
 import type { TestApp } from './app.fixture';
 import type { ErrorBody } from '../common/errors/error-catalogue';
-import { Public } from '../auth/decorators/public.decorator';
 
 // Test-module only. Never add this to AppModule.
-@Public()
 @Controller({ path: 'probe', version: '1' })
 class ProbeController {
   @Get('cookies')

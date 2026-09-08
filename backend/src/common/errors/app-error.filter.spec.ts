@@ -12,10 +12,8 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { VALIDATION_PIPE_OPTIONS } from './validation.options';
 import type { ErrorBody } from './error-catalogue';
 import type { App } from 'supertest/types';
-import { Public } from '../../auth/decorators/public.decorator';
 
 // Test-module only. Never add this to AppModule.
-@Public()
 @Controller({ path: 'boom', version: '1' })
 class BoomController {
   @Get()
