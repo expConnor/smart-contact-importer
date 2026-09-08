@@ -86,3 +86,50 @@ describe('POST /v1/auth/login', () => {
     expect(setCookies(unknownEmail)).toEqual([]);
   });
 });
+
+describe('GET /v1/me', () => {
+  let ctx: TestApp;
+  let user: typeof SEEDED & { passwordHash: string };
+
+  beforeAll(async () => {
+    ctx = await createTestApp();
+    user = { ...SEEDED, passwordHash: await hash(PASSWORD, HASH_OPTIONS) };
+  });
+
+  afterAll(async () => {
+    await ctx.close();
+  });
+
+  afterEach(() => {
+    ctx.prisma.user.findUnique.mockReset();
+  });
+
+  it('rejects a request with no cookie', async () => {
+    const res = await ctx.http().get('/v1/me');
+
+    expect(res.status).toBe(401);
+  });
+
+  it('returns the user the cookie identifies', async () => {
+    ctx.prisma.user.findUnique.mockResolvedValueOnce(user); // login
+    const login = await ctx
+      .http()
+      .post('/v1/auth/login')
+      .send({ email: SEEDED.email, password: PASSWORD });
+
+    const cookie = findCookie(login, COOKIE_NAME);
+    expect(cookie).toBeDefined();
+
+    ctx.prisma.user.findUnique.mockResolvedValueOnce(user); // /me
+    const res = await ctx
+      .http()
+      .get('/v1/me')
+      .set('Cookie', cookie as string);
+
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({ id: SEEDED.id, email: SEEDED.email });
+    expect(ctx.prisma.user.findUnique).toHaveBeenLastCalledWith({
+      where: { id: SEEDED.id },
+    });
+  });
+});
