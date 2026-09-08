@@ -15,7 +15,7 @@ const envSchema = z.object({
     .enum(['development', 'test', 'production'])
     .default('development'),
   JWT_SECRET: z.string().min(32),
-  JWT_EXPIRES_IN: z.string().default('5d'),
+  JWT_EXPIRES_IN: z.string().default('432000'),
   ANTHROPIC_API_KEY: z.string().optional(),
 });
 
