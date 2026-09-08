@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { LoginDto } from './dto/login.dto';
 import { AuthUser } from './auth.types';
+import { AppError } from '../common/errors/app.error';
 
 @Injectable()
 export class AuthService {
@@ -13,7 +14,7 @@ export class AuthService {
     });
 
     if (!user) {
-      throw new Error('UNAUTHORIZED');
+      throw new AppError('UNAUTHORIZED');
     }
     const authUser: AuthUser = { email: user.email, token: 'abc123' };
 
