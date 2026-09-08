@@ -9,7 +9,7 @@ import {
 import type { Response } from 'express';
 import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
-import { COOKIE_NAME, cookieOptions } from './cookie';
+import { clearCookieOptions, COOKIE_NAME, cookieOptions } from './cookie';
 import type { PublicUser } from './types';
 import { Public } from './decorators/public.decorator';
 
@@ -33,5 +33,12 @@ export class AuthController {
     );
 
     return user;
+  }
+
+  @Public()
+  @Post('logout')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  logout(@Res({ passthrough: true }) res: Response): void {
+    res.clearCookie(COOKIE_NAME, clearCookieOptions());
   }
 }

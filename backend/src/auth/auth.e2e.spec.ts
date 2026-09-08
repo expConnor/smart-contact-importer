@@ -1,3 +1,4 @@
+import { JwtService } from '@nestjs/jwt';
 import { argon2id, hash } from 'argon2';
 import { COOKIE_NAME } from './cookie';
 import { createTestApp, findCookie, setCookies } from '../test/app.fixture';
@@ -131,5 +132,108 @@ describe('GET /v1/me', () => {
     expect(ctx.prisma.user.findUnique).toHaveBeenLastCalledWith({
       where: { id: SEEDED.id },
     });
+  });
+
+  it('rejects a token signed with another secret', async () => {
+    const forged = new JwtService({ secret: 'not-the-app-secret' }).sign(
+      {},
+      { subject: SEEDED.id },
+    );
+
+    const res = await ctx
+      .http()
+      .get('/v1/me')
+      .set('Cookie', `${COOKIE_NAME}=${forged}`);
+
+    expect(res.status).toBe(401);
+    expect(ctx.prisma.user.findUnique).not.toHaveBeenCalled();
+  });
+
+  it('rejects a valid token whose user row is gone', async () => {
+    ctx.prisma.user.findUnique.mockResolvedValueOnce(user); // login
+    const login = await ctx
+      .http()
+      .post('/v1/auth/login')
+      .send({ email: SEEDED.email, password: PASSWORD });
+
+    ctx.prisma.user.findUnique.mockResolvedValueOnce(null); // /me - row deleted
+    const res = await ctx
+      .http()
+      .get('/v1/me')
+      .set('Cookie', findCookie(login, COOKIE_NAME) as string);
+
+    expect(res.status).toBe(401);
+  });
+});
+
+describe('POST /v1/auth/logout', () => {
+  let ctx: TestApp;
+  let user: typeof SEEDED & { passwordHash: string };
+
+  beforeAll(async () => {
+    ctx = await createTestApp();
+    user = { ...SEEDED, passwordHash: await hash(PASSWORD, HASH_OPTIONS) };
+  });
+
+  afterAll(async () => {
+    await ctx.close();
+  });
+
+  afterEach(() => {
+    ctx.prisma.user.findUnique.mockReset();
+  });
+
+  it('clears the cookie with the attributes login set', async () => {
+    ctx.prisma.user.findUnique.mockResolvedValueOnce(user);
+    const login = await ctx
+      .http()
+      .post('/v1/auth/login')
+      .send({ email: SEEDED.email, password: PASSWORD });
+
+    const res = await ctx
+      .http()
+      .post('/v1/auth/logout')
+      .set('Cookie', findCookie(login, COOKIE_NAME) as string);
+
+    expect(res.status).toBe(204);
+
+    const cleared = findCookie(res, COOKIE_NAME);
+    // The past expiry is what makes the browser evict. Without it this is an
+    // empty session cookie the browser keeps sending until the tab closes.
+    expect(cleared).toContain('Expires=Thu, 01 Jan 1970 00:00:00 GMT');
+    // Eviction needs an exact name+domain+path match with the login cookie.
+    expect(cleared).toContain('Path=/');
+    expect(cleared).toContain('HttpOnly');
+    expect(cleared).toContain('SameSite=Lax');
+  });
+
+  it('answers 204 when no cookie is sent at all', async () => {
+    // @Public() on the handler. Without it the global guard 401s the exact
+    // case that most needs to work: logging out of a dead session.
+    const res = await ctx.http().post('/v1/auth/logout');
+
+    expect(res.status).toBe(204);
+  });
+
+  it('leaves behind a cookie that no longer authenticates', async () => {
+    ctx.prisma.user.findUnique.mockResolvedValueOnce(user);
+    const login = await ctx
+      .http()
+      .post('/v1/auth/login')
+      .send({ email: SEEDED.email, password: PASSWORD });
+
+    const logout = await ctx
+      .http()
+      .post('/v1/auth/logout')
+      .set('Cookie', findCookie(login, COOKIE_NAME) as string);
+
+    const res = await ctx
+      .http()
+      .get('/v1/me')
+      .set('Cookie', findCookie(logout, COOKIE_NAME) as string);
+
+    expect(res.status).toBe(401);
+    // Rejected in the guard - the controller never ran.
+    expect(ctx.prisma.user.findUnique).toHaveBeenCalledTimes(1);
   });
 });
