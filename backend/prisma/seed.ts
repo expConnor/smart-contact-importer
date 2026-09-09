@@ -23,8 +23,10 @@ const HASH_OPTIONS = {
 const CONTACT_COUNT = 200;
 
 // Fixed epoch so createdAt — the default sort and cursor key — is stable
-// across re-runs. Contact i is one hour older than contact i - 1.
-const CONTACT_EPOCH = new Date('2026-01-01T00:00:00.000Z');
+// across re-runs. Newest contact sits at the epoch, the rest walk back 21h
+// per row, so all 200 land inside the last ~6 months (oldest ≈ 2026-03-11).
+const CONTACT_EPOCH = new Date('2026-09-01T09:00:00.000Z');
+const CONTACT_STEP_MS = 21 * 3_600_000;
 
 const FIRST_NAMES = [
   'Ada',
@@ -72,8 +74,6 @@ const LAST_NAMES = [
   'Takahashi',
 ] as const;
 
-// Uneven bucket sizes keep the ?company= filter interesting: some pages are
-// one company, some straddle several.
 const COMPANIES = [
   'Northwind Freight',
   'Lumen Analytics',
@@ -87,8 +87,29 @@ const COMPANIES = [
   'Bright Anvil',
   'Silt & Sons',
   'Meridian Labs',
+  'Fenwick Textiles',
+  'Copperline Energy',
+  'Sable & Roe',
+  'Tidewater Logistics',
+  'Juniper Dental',
+  'Ironbark Construction',
+  'Halcyon Travel',
+  'Vantage Credit Union',
 ] as const;
 
+// Row counts per company, positionally aligned with COMPANIES and summing to
+// CONTACT_COUNT. Uneven on purpose: the head companies overflow a single page
+// so ?company= exercises pagination, the tail fits in one.
+const COMPANY_WEIGHTS = [
+  30, 22, 18, 15, 13, 12, 11, 10, 9, 8, 8, 7, 6, 6, 5, 5, 4, 4, 4, 3,
+] as const;
+
+const COMPANY_POOL: readonly string[] = COMPANIES.flatMap((company, index) =>
+  Array.from({ length: COMPANY_WEIGHTS[index] }, () => company),
+);
+
+// 21 titles, not 20: a pool length coprime with the 20-name cycle keeps job
+// title from becoming a fixed function of the person's name.
 const JOB_TITLES = [
   'Head of Operations',
   'Account Executive',
@@ -100,9 +121,30 @@ const JOB_TITLES = [
   'Finance Partner',
   'Sales Engineer',
   'Managing Director',
+  'VP Engineering',
+  'Customer Success Manager',
+  'Data Analyst',
+  'HR Business Partner',
+  'Supply Chain Manager',
+  'Product Manager',
+  'Regional Sales Director',
+  'Executive Assistant',
+  'Compliance Officer',
+  'Founder',
+  'Site Reliability Engineer',
 ] as const;
 
-const STATUSES = ['lead', 'active', 'dormant', 'bounced'] as const;
+// Weighted and 7 long: skews toward lead/active like a real book of contacts,
+// and its period shares no factor with the name or title cycles.
+const STATUS_POOL = [
+  'lead',
+  'active',
+  'active',
+  'lead',
+  'dormant',
+  'active',
+  'bounced',
+] as const;
 
 type SeedContact = {
   readonly email: string;
@@ -114,25 +156,35 @@ type SeedContact = {
   readonly createdAt: Date;
 };
 
-// Strides are coprime with their pool lengths (and with each other) so the
-// fields decorrelate instead of repeating in lockstep every 20 rows.
+// Pool lengths (20 names, 21 titles, 7 statuses, 200 company slots) and their
+// strides are pairwise coprime, so the fields decorrelate instead of repeating
+// in lockstep every 20 rows.
 function buildContacts(count: number): readonly SeedContact[] {
   return Array.from({ length: count }, (_, i) => {
-    const first = FIRST_NAMES[(i * 7) % FIRST_NAMES.length];
-    const last = LAST_NAMES[(i * 13) % LAST_NAMES.length];
-    const company = COMPANIES[(i * 5) % COMPANIES.length];
+    // Latin square: the first name cycles every 20 rows and the last name
+    // shifts one place per block, so all 200 pairs are distinct.
+    const block = Math.floor(i / FIRST_NAMES.length);
+    const first = FIRST_NAMES[i % FIRST_NAMES.length];
+    const last = LAST_NAMES[(i + block) % LAST_NAMES.length];
+    const company = COMPANY_POOL[(i * 7) % COMPANY_POOL.length];
     const slug = company.toLowerCase().replace(/[^a-z0-9]+/g, '');
 
     return {
-      // Index in the local part: names collide by design, emails must not —
-      // email is the unique key the importer dedupes on.
+      // Index in the local part: email is the unique key the importer dedupes
+      // on, so it stays collision-proof even if the name pools grow.
       email: `${first.toLowerCase()}.${last.toLowerCase()}${i}@${slug}.test`,
       name: `${first} ${last}`,
       company,
-      jobTitle: JOB_TITLES[(i * 3) % JOB_TITLES.length],
-      phone: `+1-555-${String(1000 + i).padStart(4, '0')}`,
-      status: STATUSES[i % STATUSES.length],
-      createdAt: new Date(CONTACT_EPOCH.getTime() - i * 3_600_000),
+      jobTitle: JOB_TITLES[(i * 11) % JOB_TITLES.length],
+      phone: `+49${block}${Math.floor(Math.random() * 100000)}${String(1000 + i).padStart(4, '0')}`,
+      status: STATUS_POOL[i % STATUS_POOL.length],
+      // Sub-step jitter varies the time of day; it is smaller than the step,
+      // so createdAt stays strictly descending and safe as a cursor.
+      createdAt: new Date(
+        CONTACT_EPOCH.getTime() -
+          i * CONTACT_STEP_MS -
+          ((i * 37) % 120) * 60_000,
+      ),
     };
   });
 }
