@@ -31,7 +31,7 @@ GET  /imports/:id
 POST /imports/:id/mapping
 ```
 
-`GET /contacts` is cursor-paginated: it takes an opaque `cursor` and a `limit`, and returns `{ items, nextCursor }`, where `nextCursor` is null on the last page. It also filters on `status` and `company`, and sorts on `createdAt`, `name`, `company`, or `jobTitle`. Sort direction is expressed with a leading minus — `sort=company` ascending, `sort=-createdAt` descending, defaulting to `-createdAt`. Changing a filter or sort restarts paging from the beginning.
+`GET /contacts` is cursor-paginated: it takes an opaque `cursor` and a `limit`, and returns `{ items, nextCursor }`, where `nextCursor` is null on the last page. It also filters on `status` and `company`, and sorts on `createdAt`, `name`, `company`. Sort direction is expressed with a leading minus — `sort=company` ascending, `sort=-createdAt` descending, defaulting to `-createdAt`. Changing a filter or sort restarts paging from the beginning.
 
 `POST /imports` returns a job id. `GET /imports/:id` reports where that job is and, once available, the proposed mapping plus enough sample data for a user to judge it. `POST /imports/:id/mapping` accepts the user's confirmed mapping and starts the import.
 

@@ -3,6 +3,7 @@ import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { ContactsService } from './contacts.service';
 import { ListContactsQueryDto } from './dto/list-contacts-query.dto';
 import { ListContactsResponseDto } from './dto/list-contacts-response.dto';
+import { toContactListQuery } from './contact.query';
 
 @UseGuards(JwtAuthGuard)
 @Controller({ path: 'contacts', version: '1' })
@@ -11,8 +12,8 @@ export class ContactsController {
 
   @Get()
   async list(
-    @Query() _query: ListContactsQueryDto,
+    @Query() queryDto: ListContactsQueryDto,
   ): Promise<ListContactsResponseDto> {
-    return this.contactsService.list();
+    return this.contactsService.list(toContactListQuery(queryDto));
   }
 }
