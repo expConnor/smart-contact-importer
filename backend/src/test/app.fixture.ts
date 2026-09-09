@@ -14,10 +14,14 @@ import { VALIDATION_PIPE_OPTIONS } from '../common/errors/validation.options';
 // thing under test.
 export type PrismaMock = {
   user: { findUnique: jest.Mock };
+  contact: { findMany: jest.Mock };
 };
 
 export function createPrismaMock(): PrismaMock {
-  return { user: { findUnique: jest.fn() } };
+  return {
+    user: { findUnique: jest.fn() },
+    contact: { findMany: jest.fn() },
+  };
 }
 
 export type CreateTestAppOptions = {

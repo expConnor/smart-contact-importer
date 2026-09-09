@@ -1,0 +1,148 @@
+import { COOKIE_NAME } from '../auth/cookie';
+import { TokenService } from '../auth/token.service';
+import { createTestApp } from '../test/app.fixture';
+import type { TestApp } from '../test/app.fixture';
+import type { ErrorBody } from '../common/errors/error-catalogue';
+import type { Contact } from '../generated/prisma/client';
+
+const USER_ID = '00000000-0000-4000-8000-000000000001';
+
+// Newest first — the order the service asks findMany for. A body matching this
+// sequence proves the controller passes the database's order through untouched.
+const ROWS: Contact[] = [
+  {
+    id: '00000000-0000-4000-8000-0000000000a2',
+    email: 'second@test.com',
+    name: 'Second Contact',
+    company: 'Acme',
+    jobTitle: 'CTO',
+    phone: '+15550002',
+    status: 'active',
+    createdAt: new Date('2026-09-08T10:00:00.000Z'),
+    updatedAt: new Date('2026-09-08T11:00:00.000Z'),
+  },
+  {
+    id: '00000000-0000-4000-8000-0000000000a1',
+    email: 'first@test.com',
+    name: 'First Contact',
+    company: 'Globex',
+    jobTitle: 'CEO',
+    phone: '+15550001',
+    status: 'archived',
+    createdAt: new Date('2026-09-07T10:00:00.000Z'),
+    updatedAt: new Date('2026-09-07T11:00:00.000Z'),
+  },
+];
+
+// Hand-written, not built by calling toContactResponseDto — asserting the
+// mapper against itself would pass no matter what the mapper does.
+const EXPECTED_ITEMS = [
+  {
+    id: '00000000-0000-4000-8000-0000000000a2',
+    email: 'second@test.com',
+    name: 'Second Contact',
+    company: 'Acme',
+    jobTitle: 'CTO',
+    phone: '+15550002',
+    status: 'active',
+    createdAt: '2026-09-08T10:00:00.000Z',
+    updatedAt: '2026-09-08T11:00:00.000Z',
+  },
+  {
+    id: '00000000-0000-4000-8000-0000000000a1',
+    email: 'first@test.com',
+    name: 'First Contact',
+    company: 'Globex',
+    jobTitle: 'CEO',
+    phone: '+15550001',
+    status: 'archived',
+    createdAt: '2026-09-07T10:00:00.000Z',
+    updatedAt: '2026-09-07T11:00:00.000Z',
+  },
+];
+
+describe('GET /v1/contacts', () => {
+  let ctx: TestApp;
+  let cookie: string;
+
+  beforeAll(async () => {
+    ctx = await createTestApp();
+    // The guard verifies a signature and reads no row, so signing with the
+    // app's own TokenService is a whole login round-trip cheaper.
+    const { token } = ctx.app.get(TokenService).sign(USER_ID);
+    cookie = `${COOKIE_NAME}=${token}`;
+  });
+
+  afterAll(async () => {
+    await ctx.close();
+  });
+
+  afterEach(() => {
+    ctx.prisma.contact.findMany.mockReset();
+  });
+
+  it('rejects a request with no cookie', async () => {
+    const res = await ctx.http().get('/v1/contacts');
+
+    expect(res.status).toBe(401);
+    // Rejected in the guard — the service never ran.
+    expect(ctx.prisma.contact.findMany).not.toHaveBeenCalled();
+  });
+
+  it('returns the rows in an { items, nextCursor } envelope', async () => {
+    ctx.prisma.contact.findMany.mockResolvedValueOnce(ROWS);
+
+    const res = await ctx.http().get('/v1/contacts').set('Cookie', cookie);
+
+    expect(res.status).toBe(200);
+    // Exact match: the envelope has no third key and the rows lost no field.
+    expect(res.body).toEqual({ items: EXPECTED_ITEMS, nextCursor: null });
+  });
+
+  it('asks the database for a total order, and for nothing else', async () => {
+    ctx.prisma.contact.findMany.mockResolvedValueOnce(ROWS);
+
+    await ctx.http().get('/v1/contacts').set('Cookie', cookie);
+
+    expect(ctx.prisma.contact.findMany).toHaveBeenCalledTimes(1);
+    // Exact argument: no `where`, no `take`, no `select` — and the `id`
+    // tiebreaker that makes createdAt a total order rather than a partial one.
+    expect(ctx.prisma.contact.findMany).toHaveBeenCalledWith({
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+    });
+  });
+
+  it('answers an empty table with 200 and an empty list', async () => {
+    ctx.prisma.contact.findMany.mockResolvedValueOnce([]);
+
+    const res = await ctx.http().get('/v1/contacts').set('Cookie', cookie);
+
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({ items: [], nextCursor: null });
+  });
+
+  it('rejects an unknown query parameter rather than ignoring it', async () => {
+    const res = await ctx
+      .http()
+      .get('/v1/contacts?sort=nope')
+      .set('Cookie', cookie);
+
+    expect(res.status).toBe(400);
+    expect((res.body as ErrorBody).error.code).toBe('VALIDATION_FAILED');
+    expect(ctx.prisma.contact.findMany).not.toHaveBeenCalled();
+  });
+
+  it('serialises timestamps and drops columns the DTO does not declare', async () => {
+    // A column the schema will grow in the scoping slice. The mapper hand-lists
+    // its fields, so the row leaks nothing the DTO has not declared.
+    const withStrayColumn = { ...ROWS[0], userId: USER_ID };
+    ctx.prisma.contact.findMany.mockResolvedValueOnce([withStrayColumn]);
+
+    const res = await ctx.http().get('/v1/contacts').set('Cookie', cookie);
+
+    expect(res.status).toBe(200);
+    const [item] = (res.body as { items: Record<string, unknown>[] }).items;
+    expect(item.createdAt).toBe('2026-09-08T10:00:00.000Z');
+    expect(item).not.toHaveProperty('userId');
+  });
+});
