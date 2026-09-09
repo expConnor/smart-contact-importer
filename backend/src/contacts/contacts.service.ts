@@ -2,7 +2,12 @@ import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { ListContactsResponseDto } from './dto/list-contacts-response.dto';
 import { toContactResponseDto } from './contact.mapper';
-import { ContactListQuery, toNextCursor, toOrderBy } from './contact.query';
+import {
+  ContactListQuery,
+  toNextCursor,
+  toOrderBy,
+  toPageStart,
+} from './contact.query';
 
 @Injectable()
 export class ContactsService {
@@ -12,6 +17,7 @@ export class ContactsService {
     const contacts = await this.prisma.contact.findMany({
       take: query.limit + 1,
       orderBy: toOrderBy(query.sort),
+      ...toPageStart(query.cursor),
     });
 
     const nextRow = contacts.length > query.limit ? contacts.pop() : null;

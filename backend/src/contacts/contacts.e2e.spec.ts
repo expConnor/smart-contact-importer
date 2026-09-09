@@ -81,6 +81,17 @@ function readCursor(raw: string): unknown {
   return JSON.parse(Buffer.from(raw, 'base64url').toString('utf8'));
 }
 
+// The inverse of readCursor, and hand-rolled for the same reason: a cursor
+// built by encodeCursor would prove only that the codec agrees with itself.
+function writeCursor(payload: unknown): string {
+  return Buffer.from(JSON.stringify(payload), 'utf8').toString('base64url');
+}
+
+// Same, for payloads that are not JSON at all.
+function writeCursorRaw(raw: string): string {
+  return Buffer.from(raw, 'utf8').toString('base64url');
+}
+
 describe('GET /v1/contacts', () => {
   let ctx: TestApp;
   let cookie: string;
@@ -178,6 +189,69 @@ describe('GET /v1/contacts', () => {
       id: OVERFLOW_ROW.id,
       sort: 'company',
     });
+  });
+
+  it('opens page two on the row the cursor names', async () => {
+    ctx.prisma.contact.findMany.mockResolvedValueOnce(ROWS);
+    const cursorParam = writeCursor({
+      id: OVERFLOW_ROW.id,
+      sort: '-createdAt',
+    });
+
+    const res = await ctx
+      .http()
+      .get(`/v1/contacts?limit=2&cursor=${cursorParam}`)
+      .set('Cookie', cookie);
+
+    expect(res.status).toBe(200);
+    // No `skip`: the cursor names the first row of this page, not the last row
+    // of the previous one, so Prisma's inclusive cursor is already correct.
+    // A `skip: 1` here would swallow OVERFLOW_ROW entirely.
+    expect(ctx.prisma.contact.findMany).toHaveBeenCalledWith({
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+      take: 3,
+      cursor: { id: OVERFLOW_ROW.id },
+    });
+  });
+
+  it('rejects a cursor issued under a different sort', async () => {
+    // Page one was sorted by -createdAt; the client then switches to company
+    // and replays the old cursor. Honouring it would page one ordering with
+    // another ordering's boundary — rows repeat, rows vanish.
+    const cursorParam = writeCursor({
+      id: OVERFLOW_ROW.id,
+      sort: '-createdAt',
+    });
+
+    const res = await ctx
+      .http()
+      .get(`/v1/contacts?limit=2&sort=company&cursor=${cursorParam}`)
+      .set('Cookie', cookie);
+
+    expect(res.status).toBe(400);
+    expect((res.body as ErrorBody).error.code).toBe('VALIDATION_FAILED');
+    expect(ctx.prisma.contact.findMany).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ['not base64 at all', '!!!not-a-cursor!!!'],
+    ['base64 of something that is not JSON', writeCursorRaw('plain text')],
+    ['JSON with no id', writeCursor({ sort: '-createdAt' })],
+    ['JSON with an empty id', writeCursor({ id: '', sort: '-createdAt' })],
+    [
+      'JSON naming a column that cannot be sorted on',
+      writeCursor({ id: OVERFLOW_ROW.id, sort: 'email' }),
+    ],
+  ])('rejects a cursor that is %s', async (_label, cursorParam) => {
+    const res = await ctx
+      .http()
+      .get(`/v1/contacts?cursor=${encodeURIComponent(cursorParam)}`)
+      .set('Cookie', cookie);
+
+    expect(res.status).toBe(400);
+    expect((res.body as ErrorBody).error.code).toBe('VALIDATION_FAILED');
+    // Rejected while parsing the query — a tampered cursor never reaches the DB.
+    expect(ctx.prisma.contact.findMany).not.toHaveBeenCalled();
   });
 
   it('returns no cursor when the page is full and nothing follows', async () => {
