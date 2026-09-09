@@ -61,6 +61,26 @@ const EXPECTED_ITEMS = [
   },
 ];
 
+// Older than both rows above, so a limit of 2 leaves it hanging off the end of
+// the page. This is the probe row: fetched, never returned, only encoded.
+const OVERFLOW_ROW: Contact = {
+  id: '00000000-0000-4000-8000-0000000000a0',
+  email: 'third@test.com',
+  name: 'Third Contact',
+  company: 'Initech',
+  jobTitle: 'COO',
+  phone: '+15550003',
+  status: 'active',
+  createdAt: new Date('2026-09-06T10:00:00.000Z'),
+  updatedAt: new Date('2026-09-06T11:00:00.000Z'),
+};
+
+// Decoded by hand rather than by calling decodeCursor — running the codec
+// against itself would pass no matter what the codec does.
+function readCursor(raw: string): unknown {
+  return JSON.parse(Buffer.from(raw, 'base64url').toString('utf8'));
+}
+
 describe('GET /v1/contacts', () => {
   let ctx: TestApp;
   let cookie: string;
@@ -105,12 +125,87 @@ describe('GET /v1/contacts', () => {
     await ctx.http().get('/v1/contacts').set('Cookie', cookie);
 
     expect(ctx.prisma.contact.findMany).toHaveBeenCalledTimes(1);
-    // Exact argument: no `where`, no `take`, no `select` — and the `id`
-    // tiebreaker that makes createdAt a total order rather than a partial one.
+    // Exact argument: no `where`, no `select`, and the `id` tiebreaker that
+    // makes createdAt a total order rather than a partial one. 51, not 50:
+    // the default page plus the probe row that answers "is there more?".
     expect(ctx.prisma.contact.findMany).toHaveBeenCalledWith({
       orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+      take: 51,
     });
   });
+
+  it('asks for one row more than the page holds', async () => {
+    ctx.prisma.contact.findMany.mockResolvedValueOnce(ROWS);
+
+    await ctx.http().get('/v1/contacts?limit=2').set('Cookie', cookie);
+
+    expect(ctx.prisma.contact.findMany).toHaveBeenCalledWith({
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+      take: 3,
+    });
+  });
+
+  it('withholds the extra row and points the cursor at it', async () => {
+    ctx.prisma.contact.findMany.mockResolvedValueOnce([...ROWS, OVERFLOW_ROW]);
+
+    const res = await ctx
+      .http()
+      .get('/v1/contacts?limit=2')
+      .set('Cookie', cookie);
+
+    expect(res.status).toBe(200);
+    const body = res.body as { items: unknown[]; nextCursor: string };
+    // The probe row is absent from the page...
+    expect(body.items).toEqual(EXPECTED_ITEMS);
+    // ...and is exactly what the cursor names, so page two opens on it and no
+    // contact falls through the boundary.
+    expect(readCursor(body.nextCursor)).toEqual({
+      id: OVERFLOW_ROW.id,
+      sort: '-createdAt',
+    });
+  });
+
+  it('carries the requested sort in the cursor, not the default', async () => {
+    ctx.prisma.contact.findMany.mockResolvedValueOnce([...ROWS, OVERFLOW_ROW]);
+
+    const res = await ctx
+      .http()
+      .get('/v1/contacts?limit=2&sort=company')
+      .set('Cookie', cookie);
+
+    const { nextCursor } = res.body as { nextCursor: string };
+    expect(readCursor(nextCursor)).toEqual({
+      id: OVERFLOW_ROW.id,
+      sort: 'company',
+    });
+  });
+
+  it('returns no cursor when the page is full and nothing follows', async () => {
+    // Two rows for a limit of two: the boundary where a naive `length === limit`
+    // check would invent a page that does not exist.
+    ctx.prisma.contact.findMany.mockResolvedValueOnce(ROWS);
+
+    const res = await ctx
+      .http()
+      .get('/v1/contacts?limit=2')
+      .set('Cookie', cookie);
+
+    expect(res.body).toEqual({ items: EXPECTED_ITEMS, nextCursor: null });
+  });
+
+  it.each(['0', '201', 'abc'])(
+    'rejects limit=%s rather than clamping it',
+    async (limit) => {
+      const res = await ctx
+        .http()
+        .get(`/v1/contacts?limit=${limit}`)
+        .set('Cookie', cookie);
+
+      expect(res.status).toBe(400);
+      expect((res.body as ErrorBody).error.code).toBe('VALIDATION_FAILED');
+      expect(ctx.prisma.contact.findMany).not.toHaveBeenCalled();
+    },
+  );
 
   it('answers an empty table with 200 and an empty list', async () => {
     ctx.prisma.contact.findMany.mockResolvedValueOnce([]);

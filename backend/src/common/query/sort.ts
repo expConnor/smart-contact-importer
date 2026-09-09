@@ -22,3 +22,7 @@ export function parseSort<C extends string>(
     direction: descending ? 'desc' : 'asc',
   };
 }
+
+export function toSortParam<C extends string>(spec: SortSpec<C>): SortParam<C> {
+  return spec.direction === 'desc' ? `-${spec.column}` : spec.column;
+}
