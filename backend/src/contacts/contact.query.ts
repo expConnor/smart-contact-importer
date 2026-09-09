@@ -31,6 +31,9 @@ export function toContactListQuery(
     ? decodeCursor<ContactSortColumn>(dto.cursor, CONTACT_SORT_COLUMNS)
     : null;
 
+  // A cursor is an anchor into one specific ordering. If the client changes `sort`
+  // mid-pagination the anchor is meaningless, so reject it rather than silently
+  // re-anchoring into the new order.
   if (cursor && cursor.sort !== toSortParam(sort)) {
     throw new AppError('VALIDATION_FAILED', SORT_MISMATCH);
   }

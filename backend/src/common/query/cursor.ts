@@ -12,6 +12,8 @@ const CURSOR_ERROR: FieldError[] = [
   { field: 'cursor', message: 'cursor is not a valid pagination cursor' },
 ];
 
+// A forged cursor can only name a row id and a sort, and decodeCursor validates
+// the sort against `cols` before it is trusted.
 export function encodeCursor<C extends string>(cursor: Cursor<C>): string {
   return Buffer.from(JSON.stringify(cursor), 'utf8').toString('base64url');
 }

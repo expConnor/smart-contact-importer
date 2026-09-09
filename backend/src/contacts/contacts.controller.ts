@@ -10,6 +10,9 @@ import { toContactListQuery } from './contact.query';
 export class ContactsController {
   constructor(private readonly contactsService: ContactsService) {}
 
+  // Nest has already validated the query string into the DTO by the time this runs;
+  // toContactListQuery turns that into a domain query — defaults applied, cursor
+  // decoded and checked. The controller decides nothing itself.
   @Get()
   async list(
     @Query() queryDto: ListContactsQueryDto,
