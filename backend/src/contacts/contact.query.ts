@@ -59,26 +59,6 @@ export function toContactListQuery(
   };
 }
 
-export function parseContactFilters(
-  dto: ListContactsQueryDto,
-): FilterSpec<ContactFilterColumn> {
-  const filters = [];
-  dto.status
-    ? filters.push({
-        column: CONTACT_FILTER_COLUMNS[0],
-        value: dto.status.toLowerCase(),
-      })
-    : null;
-  dto.company
-    ? filters.push({
-        column: CONTACT_FILTER_COLUMNS[1],
-        value: dto.company.toLowerCase(),
-      })
-    : null;
-
-  return filters;
-}
-
 export function toOrderBy(
   spec: SortSpec<ContactSortColumn>,
 ): Prisma.ContactOrderByWithRelationInput[] {
