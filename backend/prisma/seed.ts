@@ -7,9 +7,7 @@ import { env } from '../src/config/env';
 type SeedUser = { readonly email: string; readonly password: string };
 
 const USERS: readonly SeedUser[] = [
-  { email: 'user1@test.com', password: 'develop' },
-  { email: 'user2@test.com', password: 'develop' },
-  { email: 'user3@test.com', password: 'develop' },
+  { email: 'user@test.com', password: 'develop' },
 ];
 
 // OWASP minimum for Argon2id: 19 MiB, 2 iterations, 1 lane.
