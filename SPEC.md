@@ -16,7 +16,7 @@ The domain is deliberately trivial. Column inference, idempotency, background pr
 
 **Frontend** — Vite, React, TanStack Query, TanStack Table. **Very basic styling.**
 
-**Out of scope** — Redis, S3, signup, multi-user orgs, contact editing, CSV export. Seed a single user. Adding infrastructure beyond Postgres is a decision you would need to justify.
+**Out of scope** — Redis, S3, signup, multi-user orgs, contact editing, CSV export. Seed a single user; contacts are not scoped per-user. Adding infrastructure beyond Postgres is a decision you would need to justify.
 
 ---
 
@@ -91,8 +91,6 @@ The extra fields exist to make inference non-trivial. `jobTitle` and `company` a
 **Filtering and sorting happen in the database**, never by trimming a page in application code. The `sort` parameter is parsed into a column and a direction, and the column is checked against a fixed allowed set — an unrecognised value is a client error, not a string handed to the query builder.
 
 **Table state is the query.** The frontend table does not sort or filter its own rows. Whatever the user selects becomes the request; the server decides what is on a page.
-
-**Every query is scoped to the authenticated user at the data layer**, not in the UI.
 
 ---
 
