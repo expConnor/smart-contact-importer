@@ -1,0 +1,11 @@
+Anrede;Vorname;Nachname;Firma;Position;E-Mail;Telefon;Status
+Herr;Jürgen;Müller;Königsbach Logistik GmbH;Geschäftsführer;j.mueller@koenigsbach.test;+49 30 901820;Kunde
+Frau;Käthe;Groß;Weißenberg & Söhne KG;Leiterin Einkauf;k.gross@weissenberg.test;030 12345678;Interessent
+Herr;Björn;Schröder;Nordsee Fördertechnik AG;Vertriebsleiter;b.schroeder@nordsee-ft.test;+49 40 428 380;Kunde
+Frau;Özlem;Öztürk;Bäckerei Hufnagel;Bürokauffrau;oe.oeztuerk@hufnagel.test;0221 22123344;Ehemaliger Kunde
+Herr;Matthäus;Bär;Grünwald Präzisionsteile;Technischer Leiter;m.baer@gruenwald-pt.test;+49 89 233 0;Interessent
+Frau;Sofía;Wüst;Ähren & Korn Mühlen;Marketing;s.wuest@aehren-korn.test;0341 1234560;Kunde
+Herr;Günther;Faß;Schwarzwälder Uhren OHG;Prokurist;g.fass@sw-uhren.test;+49 7721 87 0;Lead
+Frau;Annelie;Hönig;Rheinblick Immobilien;Objektbetreuung;a.hoenig@rheinblick.test;0211 8992010;Interessent
+Herr;Sören;Kühn;Elbwerft Maschinenbau;Konstrukteur;s.kuehn@elbwerft.test;+49 351 4811 0;Kunde
+Frau;Meike;Rösler;Ostsee Küchenstudio;Inhaberin;m.roesler@ostsee-kuechen.test;0381 4567890;Ehemaliger Kunde
