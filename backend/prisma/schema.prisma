@@ -32,4 +32,8 @@ model Contact {
   status    String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  @@index([createdAt, id])
+  @@index([name, id])
+  @@index([company, id])
 }
