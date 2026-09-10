@@ -1,4 +1,3 @@
-//`C` is the union of one entity's filterable column names
 export type Filter<C extends string> = {
   column: C;
   value: string;
@@ -15,7 +14,42 @@ export function parseFilters<C extends string>(
   source: Partial<Record<C, string | undefined>>,
 ): FilterSpec<C> {
   return cols.flatMap<Filter<C>>((column) => {
-    const value = source[column]?.trim();
+    const value = source[column]?.trim().toLowerCase();
     return value ? [{ column, value }] : [];
   });
+}
+
+export function filtersEqual<C extends string>(
+  a: FilterSpec<C>,
+  b: FilterSpec<C>,
+): boolean {
+  return (
+    a.length === b.length &&
+    a.every(
+      (filter, i) =>
+        filter.column === b[i].column && filter.value === b[i].value,
+    )
+  );
+}
+
+// mode: 'insensitive' makes Prisma emit ILIKE, so `%` and `_` in a client-supplied
+// value act as wildcards — ?company=% matched every row. Backslash is ILIKE's
+// default escape character, so escaping keeps an equality filter an equality filter.
+function escapeLike(value: string): string {
+  return value.replace(/[\\%_]/g, '\\$&');
+}
+
+export function toWhere<C extends string>(
+  spec: FilterSpec<C>,
+): Record<string, { equals: string; mode: 'insensitive' }> {
+  const clauses: Record<string, { equals: string; mode: 'insensitive' }> = {};
+
+  for (const clause of spec) {
+    clauses[clause.column] = {
+      equals: escapeLike(clause.value),
+      mode: 'insensitive',
+    };
+  }
+
+  return clauses;
 }

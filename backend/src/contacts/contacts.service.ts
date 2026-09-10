@@ -2,13 +2,10 @@ import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { ListContactsResponseDto } from './dto/list-contacts-response.dto';
 import { toContactResponseDto } from './contact.mapper';
-import {
-  ContactListQuery,
-  toNextCursor,
-  toOrderBy,
-  toPageStart,
-  toWhere,
-} from './contact.query';
+import { ContactListQuery, toNextCursor } from './contact.query';
+import { toOrderBy } from '../common/query/sort';
+import { toWhere } from '../common/query/filter';
+import { toPageAnchor } from '../common/query/cursor';
 
 @Injectable()
 export class ContactsService {
@@ -16,21 +13,20 @@ export class ContactsService {
 
   async list(query: ContactListQuery): Promise<ListContactsResponseDto> {
     console.log('Query:', query);
-    // Take one extra row. It is never returned to the client — it only proves a
-    // next page exists and seeds nextCursor. Because it is withheld, Prisma's
-    // inclusive `cursor` opens the next page exactly on it, so there is no
-    // `skip: 1` here.
+
     const contacts = await this.prisma.contact.findMany({
-      take: query.limit + 1,
+      where: toWhere(query.filters),
       orderBy: toOrderBy(query.sort),
-      ...toPageStart(query.cursor),
-      ...toWhere(query.filters),
+      cursor: toPageAnchor(query.cursor),
+      take: query.limit + 1,
     });
     const nextRow = contacts.length > query.limit ? contacts.pop() : null;
 
     const response: ListContactsResponseDto = {
       items: contacts.map(toContactResponseDto),
-      nextCursor: nextRow ? toNextCursor(nextRow, query.sort) : null,
+      nextCursor: nextRow
+        ? toNextCursor(nextRow, query.sort, query.filters)
+        : null,
     };
 
     return response;

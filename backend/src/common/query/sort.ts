@@ -1,7 +1,3 @@
-// Pagination primitives that know nothing about contacts. `C` is the union of one
-// entity's sortable column names — contact.query.ts pins it to ContactSortColumn,
-// and cursor.ts builds on these same types.
-
 export type SortParam<C extends string> = C | `-${C}`;
 
 export type SortSpec<C extends string> = {
@@ -29,4 +25,10 @@ export function parseSort<C extends string>(
 
 export function toSortParam<C extends string>(spec: SortSpec<C>): SortParam<C> {
   return spec.direction === 'desc' ? `-${spec.column}` : spec.column;
+}
+
+export function toOrderBy<C extends string>(
+  spec: SortSpec<C>,
+): Record<string, 'asc' | 'desc'>[] {
+  return [{ [spec.column]: spec.direction }, { id: spec.direction }];
 }
