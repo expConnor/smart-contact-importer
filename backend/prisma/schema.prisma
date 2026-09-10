@@ -15,25 +15,91 @@ datasource db {
 }
 
 model User {
-  id           String   @id @db.Uuid()
-  email        String   @unique
+  id           String      @id @db.Uuid()
+  email        String      @unique
   passwordHash String
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  createdAt    DateTime    @default(now()) @db.Timestamptz(3)
+  updatedAt    DateTime    @updatedAt @db.Timestamptz(3)
+  importJobs   ImportJob[]
 }
 
 model Contact {
   id        String   @id @db.Uuid()
   email     String   @unique
-  name      String
-  company   String
-  jobTitle  String
-  phone     String
-  status    String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  name      String   @default("")
+  company   String   @default("")
+  jobTitle  String   @default("")
+  phone     String   @default("")
+  status    String   @default("")
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @db.Timestamptz(3)
 
   @@index([createdAt, id])
   @@index([name, id])
   @@index([company, id])
+}
+
+enum ImportJobStatus {
+  PENDING_ANALYSIS
+  ANALYZING
+  AWAITING_MAPPING
+  PENDING_IMPORT
+  IMPORTING
+  COMPLETED
+  FAILED
+}
+
+enum InferenceSource {
+  LLM
+  HEURISTIC
+}
+
+model ImportJob {
+  id                String           @id @default(uuid(7)) @db.Uuid
+  userId            String           @db.Uuid
+  idempotencyKey    String
+  fileHash          String
+  originalFilename  String
+  storagePath       String
+  byteSize          Int
+  status            ImportJobStatus  @default(PENDING_ANALYSIS)
+  failureReason     String?
+  leaseExpiresAt    DateTime?        @db.Timestamptz(3)
+  leaseOwner        String?
+  attempts          Int              @default(0)
+  detectedHeaders   Json?
+  detectedDelimiter String?
+  detectedEncoding  String?
+  headerRowIndex    Int?
+  sampleRows        Json?
+  proposedMapping   Json?
+  confirmedMapping  Json?
+  inferenceSource   InferenceSource?
+  totalRows         Int?
+  importedRows      Int              @default(0)
+  failedRows        Int              @default(0)
+  createdAt         DateTime         @default(now()) @db.Timestamptz(3)
+  updatedAt         DateTime         @updatedAt @db.Timestamptz(3)
+  startedAt         DateTime?        @db.Timestamptz(3)
+  completedAt       DateTime?        @db.Timestamptz(3)
+
+  user   User          @relation(fields: [userId], references: [id])
+  errors ImportError[]
+
+  @@unique([userId, idempotencyKey])
+  @@index([userId, createdAt])
+  @@index([status, leaseExpiresAt])
+}
+
+model ImportError {
+  id          String  @id @default(uuid(7)) @db.Uuid
+  importJobId String  @db.Uuid
+  rowNumber   Int
+  field       String?
+  message     String
+  rawRow      Json
+
+  job ImportJob @relation(fields: [importJobId], references: [id], onDelete: Cascade)
+
+  @@index([importJobId, rowNumber])
 }
