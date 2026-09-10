@@ -14,6 +14,14 @@ export const CATALOGUE = {
     status: HttpStatus.INTERNAL_SERVER_ERROR,
     message: 'Internal server error',
   },
+  CONFLICT: {
+    status: HttpStatus.CONFLICT,
+    message: 'Conflict',
+  },
+  PAYLOAD_TOO_LARGE: {
+    status: HttpStatus.PAYLOAD_TOO_LARGE,
+    message: 'Payload too large',
+  },
 } satisfies Record<string, { status: HttpStatus; message: string }>;
 
 export type ErrorCode = keyof typeof CATALOGUE;
@@ -28,4 +36,6 @@ export const STATUS_TO_CODE: Record<number, ErrorCode> = {
   401: 'UNAUTHORIZED',
   404: 'NOT_FOUND',
   500: 'INTERNAL',
+  409: 'CONFLICT',
+  413: 'PAYLOAD_TOO_LARGE',
 };
