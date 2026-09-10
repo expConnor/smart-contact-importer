@@ -39,6 +39,9 @@ function escapeLike(value: string): string {
   return value.replace(/[\\%_]/g, '\\$&');
 }
 
+// Returns the clause map itself, so the caller writes `where: toWhere(...)`
+// rather than spreading a partial object. An empty spec gives an empty object,
+// which Prisma reads as "no filter".
 export function toWhere<C extends string>(
   spec: FilterSpec<C>,
 ): Record<string, { equals: string; mode: 'insensitive' }> {

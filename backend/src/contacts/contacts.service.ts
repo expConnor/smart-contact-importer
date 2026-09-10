@@ -12,8 +12,6 @@ export class ContactsService {
   constructor(private readonly prisma: PrismaService) {}
 
   async list(query: ContactListQuery): Promise<ListContactsResponseDto> {
-    console.log('Query:', query);
-
     const contacts = await this.prisma.contact.findMany({
       where: toWhere(query.filters),
       orderBy: toOrderBy(query.sort),

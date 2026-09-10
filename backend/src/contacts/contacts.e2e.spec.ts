@@ -136,11 +136,14 @@ describe('GET /v1/contacts', () => {
     await ctx.http().get('/v1/contacts').set('Cookie', cookie);
 
     expect(ctx.prisma.contact.findMany).toHaveBeenCalledTimes(1);
-    // Exact argument: no `where`, no `select`, and the `id` tiebreaker that
-    // makes createdAt a total order rather than a partial one. 51, not 50:
-    // the default page plus the probe row that answers "is there more?".
+    // Exact argument: an empty `where` (no filters supplied), no `select`, no
+    // cursor on page one, and the `id` tiebreaker that makes createdAt a total
+    // order rather than a partial one. 51, not 50: the default page plus the
+    // probe row that answers "is there more?".
     expect(ctx.prisma.contact.findMany).toHaveBeenCalledWith({
+      where: {},
       orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+      cursor: undefined,
       take: 51,
     });
   });
@@ -151,7 +154,9 @@ describe('GET /v1/contacts', () => {
     await ctx.http().get('/v1/contacts?limit=2').set('Cookie', cookie);
 
     expect(ctx.prisma.contact.findMany).toHaveBeenCalledWith({
+      where: {},
       orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+      cursor: undefined,
       take: 3,
     });
   });
@@ -173,6 +178,7 @@ describe('GET /v1/contacts', () => {
     expect(readCursor(body.nextCursor)).toEqual({
       id: OVERFLOW_ROW.id,
       sort: '-createdAt',
+      filters: [],
     });
   });
 
@@ -188,6 +194,7 @@ describe('GET /v1/contacts', () => {
     expect(readCursor(nextCursor)).toEqual({
       id: OVERFLOW_ROW.id,
       sort: 'company',
+      filters: [],
     });
   });
 
@@ -196,6 +203,7 @@ describe('GET /v1/contacts', () => {
     const cursorParam = writeCursor({
       id: OVERFLOW_ROW.id,
       sort: '-createdAt',
+      filters: [],
     });
 
     const res = await ctx
@@ -208,9 +216,10 @@ describe('GET /v1/contacts', () => {
     // of the previous one, so Prisma's inclusive cursor is already correct.
     // A `skip: 1` here would swallow OVERFLOW_ROW entirely.
     expect(ctx.prisma.contact.findMany).toHaveBeenCalledWith({
+      where: {},
       orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
-      take: 3,
       cursor: { id: OVERFLOW_ROW.id },
+      take: 3,
     });
   });
 
@@ -302,8 +311,8 @@ describe('GET /v1/contacts', () => {
   });
 
   it('serialises timestamps and drops columns the DTO does not declare', async () => {
-    // A column the schema will grow in the scoping slice. The mapper hand-lists
-    // its fields, so the row leaks nothing the DTO has not declared.
+    // A column the row might carry that the DTO does not declare. The mapper
+    // hand-lists its fields, so the row leaks nothing beyond the contract.
     const withStrayColumn = { ...ROWS[0], userId: USER_ID };
     ctx.prisma.contact.findMany.mockResolvedValueOnce([withStrayColumn]);
 
