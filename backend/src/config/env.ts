@@ -16,6 +16,13 @@ const envSchema = z.object({
     .default('development'),
   JWT_SECRET: z.string().min(32),
   JWT_EXPIRES_IN: z.string().default('432000'),
+  UPLOAD_DIR: z.string().min(1).default('./uploads'),
+  MAX_UPLOAD_BYTES: z.coerce
+    .number()
+    .int()
+    .positive()
+    .max(2_000_000_000)
+    .default(10_485_760),
   ANTHROPIC_API_KEY: z.string().optional(),
 });
 
