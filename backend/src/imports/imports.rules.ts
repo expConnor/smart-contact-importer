@@ -47,7 +47,7 @@ function violatedConstraint(meta: unknown): string | undefined {
   }
 
   const fields = pick(constraint, 'fields');
-  if (Array.isArray(fields)) {
+  if (Array.isArray(fields) && fields.length > 0) {
     return fields.join(',');
   }
 
