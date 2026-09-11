@@ -45,12 +45,21 @@ docker compose down -v      # stop, destroy the pgdata volume
 cd backend
 npm install
 cp .env.example .env        # required: DATABASE_URL has no default
+npm run db:migrate          # apply migrations to the dev database
+npm run db:seed             # 1 user + 200 contacts; re-runnable, upserts
 npm run check               # format, lint, test, build
+npm run dev                 # http://localhost:3000
 ```
 
 Unlike the root `.env`, this one is not optional — Prisma throws on a missing
 `DATABASE_URL` rather than falling back. If you changed `DB_PORT` at the root,
 change the port in `DATABASE_URL` to match.
+
+Seeded login — dev-only, from [backend/prisma/seed.ts](backend/prisma/seed.ts):
+
+| Email           | Password  |
+| --------------- | --------- |
+| `user@test.com` | `develop` |
 
 ### Tests
 
@@ -86,6 +95,10 @@ Without it, `npm run test:e2e` fails with `ECONNREFUSED` on the default port.
 `ANTHROPIC_API_KEY` is optional and empty by default; column inference falls
 back to a deterministic heuristic without it.
 
-<!-- TODO: prisma migrate + seed commands (data-model slice) -->
-<!-- TODO: seeded login credentials (auth slice) -->
+## Fixtures
+
+Sample CSVs for the import path live in [fixtures/](fixtures/) — one file per
+export format, each breaking something different. See
+[fixtures/README.md](fixtures/README.md).
+
 <!-- TODO: frontend run instructions (frontend slice) -->
