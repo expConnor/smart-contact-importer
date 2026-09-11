@@ -4,9 +4,10 @@ import { PrismaModule } from './prisma/prisma.module';
 import { AuthModule } from './auth/auth.module';
 import { AppErrorFilter } from './common/errors/app-error.filter';
 import { ContactsModule } from './contacts/contacts.module';
+import { ImportsModule } from './imports/imports.module';
 
 @Module({
-  imports: [PrismaModule, AuthModule, ContactsModule],
+  imports: [PrismaModule, AuthModule, ContactsModule, ImportsModule],
   providers: [{ provide: APP_FILTER, useClass: AppErrorFilter }],
 })
 export class AppModule {}
