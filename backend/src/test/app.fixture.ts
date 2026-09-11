@@ -5,6 +5,10 @@
 // assertions proved, right up until a behaviour-preserving refactor broke all
 // four without changing a single response.
 //
+// There is no opt-out. The option that allowed one had exactly one caller left
+// after T2 (contacts.e2e.spec.ts) and none after T3, so it is gone: a fence a
+// spec opts into is a fence a spec eventually forgets.
+//
 // Anything built on this is an e2e spec and MUST be named `*.e2e.spec.ts`, or it
 // lands in the unit project, which runs with no container.
 
@@ -15,29 +19,9 @@ import cookieParser from 'cookie-parser';
 import request from 'supertest';
 import type { App } from 'supertest/types';
 import { AppModule } from '../app.module';
-import { PrismaService } from '../prisma/prisma.service';
 import { VALIDATION_PIPE_OPTIONS } from '../common/errors/validation.options';
 
 export type CreateTestAppOptions = {
-  /**
-   * Replaces PrismaService for this one app. The opt-out, and not a
-   * recommendation — D3 says Postgres is never doubled.
-   *
-   * Named after the phase that deletes it, because there is nothing structural
-   * stopping a new spec from reaching for it and D4's own argument applies:
-   * a fence each spec opts into is a fence one spec eventually forgets.
-   *
-   * T2 took auth.e2e.spec.ts off it. ONE caller remains — contacts.e2e.spec.ts
-   * (T3), declaring its own stub in its own file. `grep -rn prismaDoubleUntilT3
-   * src` is the whole census; when it names no file but this one, delete the
-   * field and the branch below. That is what finishes D1.
-   *
-   * `unknown` on purpose. A shape-checked type is not available: a stub like
-   * `{ user: { findUnique: jest.fn() } }` cannot satisfy Partial<PrismaService>
-   * without spelling out a whole delegate, so the choice is `unknown` or a
-   * second mock type — and a second mock type is the thing T1 deleted.
-   */
-  prismaDoubleUntilT3?: unknown;
   // Test-module-only controllers (probes, throwers). Never added to AppModule.
   controllers?: Type<unknown>[];
 };
@@ -50,18 +34,10 @@ export type CreateTestAppOptions = {
  * reviewer never runs.
  */
 export async function createTestApp(options: CreateTestAppOptions = {}) {
-  const builder = Test.createTestingModule({
+  const moduleRef = await Test.createTestingModule({
     imports: [AppModule],
     controllers: options.controllers ?? [],
-  });
-
-  if (options.prismaDoubleUntilT3 !== undefined) {
-    builder
-      .overrideProvider(PrismaService)
-      .useValue(options.prismaDoubleUntilT3);
-  }
-
-  const moduleRef = await builder.compile();
+  }).compile();
 
   // logger: false — AppErrorFilter warns on every branch; otherwise runs are noise.
   const app = moduleRef.createNestApplication({ logger: false });
@@ -72,7 +48,7 @@ export async function createTestApp(options: CreateTestAppOptions = {}) {
   app.useGlobalPipes(new ValidationPipe(VALIDATION_PIPE_OPTIONS));
   // ──────────────────────
 
-  // Connects PrismaService (onModuleInit), unless a double displaced it.
+  // Connects PrismaService (onModuleInit).
   await app.init();
 
   return {
