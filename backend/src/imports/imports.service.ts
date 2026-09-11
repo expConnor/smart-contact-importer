@@ -19,15 +19,14 @@ export class ImportsService {
     idempotencyKey: string,
     file: Express.Multer.File | undefined,
   ): Promise<CreateImportResult> {
-    assertCsvPresent(file);
-
     let committed = false;
     try {
+      assertCsvPresent(file);
       const result = await this.persist(userId, idempotencyKey, file);
       committed = !result.replayed;
       return result;
     } finally {
-      if (!committed) {
+      if (!committed && file) {
         await this.storage.discard(file.filename);
       }
     }
