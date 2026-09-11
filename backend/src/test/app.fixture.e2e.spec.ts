@@ -60,6 +60,11 @@ describe('createTestApp', () => {
     // /me verifies a signature and reads a row; it never touches the hash, so
     // this is a placeholder rather than an argon2 digest (that cost belongs to
     // the one real login test).
+    //
+    // Written out longhand rather than through auth.fixture's seedUser, which
+    // shares the placeholder literal: this test exists to prove the app and the
+    // suite share a database, and routing it through a fixture that depends on
+    // that seam would be testing the seam through itself.
     await testDb().user.create({
       data: { id, email, passwordHash: 'never-verified-on-this-path' },
     });

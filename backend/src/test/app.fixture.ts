@@ -25,10 +25,12 @@ export type CreateTestAppOptions = {
    *
    * Named after the phase that deletes it, because there is nothing structural
    * stopping a new spec from reaching for it and D4's own argument applies:
-   * a fence each spec opts into is a fence one spec eventually forgets. Two
-   * callers remain — auth.e2e.spec.ts (T2) and contacts.e2e.spec.ts (T3) —
-   * each declaring its own stub in its own file. `grep -rn prismaDoubleUntilT3`
-   * is the whole census; when it returns two hits, delete both and this field.
+   * a fence each spec opts into is a fence one spec eventually forgets.
+   *
+   * T2 took auth.e2e.spec.ts off it. ONE caller remains — contacts.e2e.spec.ts
+   * (T3), declaring its own stub in its own file. `grep -rn prismaDoubleUntilT3
+   * src` is the whole census; when it names no file but this one, delete the
+   * field and the branch below. That is what finishes D1.
    *
    * `unknown` on purpose. A shape-checked type is not available: a stub like
    * `{ user: { findUnique: jest.fn() } }` cannot satisfy Partial<PrismaService>
