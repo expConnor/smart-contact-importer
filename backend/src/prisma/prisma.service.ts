@@ -5,8 +5,19 @@ import {
   OnModuleInit,
 } from '@nestjs/common';
 import { PrismaPg } from '@prisma/adapter-pg';
-import { PrismaClient } from '../generated/prisma/client';
+import { Prisma, PrismaClient } from '../generated/prisma/client';
 import { env } from '../config/env';
+
+function logLevels(nodeEnv: typeof env.NODE_ENV): Prisma.LogLevel[] {
+  switch (nodeEnv) {
+    case 'development':
+      return ['query', 'warn', 'error'];
+    case 'test':
+      return ['warn', 'error'];
+    case 'production':
+      return ['error'];
+  }
+}
 
 @Injectable()
 export class PrismaService
@@ -24,8 +35,7 @@ export class PrismaService
 
     super({
       adapter,
-      log:
-        env.NODE_ENV === 'production' ? ['error'] : ['query', 'warn', 'error'],
+      log: logLevels(env.NODE_ENV),
     });
   }
 

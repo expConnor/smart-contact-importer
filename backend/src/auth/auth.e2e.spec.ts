@@ -13,6 +13,13 @@ const HASH_OPTIONS = {
   parallelism: 1,
 } as const;
 
+// T2 rewrites this file against the real database. Until then it opts out of
+// one, and spells the stub out here: app.fixture.ts no longer ships a factory
+// for a Prisma double, and this is the last file that should ever hold one
+// besides contacts.e2e.spec.ts.
+const findUnique = jest.fn();
+const prismaStub = { user: { findUnique } };
+
 const PASSWORD = 'develop';
 
 const SEEDED = {
@@ -27,7 +34,7 @@ describe('POST /v1/auth/login', () => {
   let user: typeof SEEDED & { passwordHash: string };
 
   beforeAll(async () => {
-    ctx = await createTestApp();
+    ctx = await createTestApp({ prismaDoubleUntilT3: prismaStub });
     user = { ...SEEDED, passwordHash: await hash(PASSWORD, HASH_OPTIONS) };
   });
 
@@ -36,11 +43,11 @@ describe('POST /v1/auth/login', () => {
   });
 
   afterEach(() => {
-    ctx.prisma.user.findUnique.mockReset();
+    findUnique.mockReset();
   });
 
   it('issues an httpOnly cookie and returns the user without the token', async () => {
-    ctx.prisma.user.findUnique.mockResolvedValueOnce(user);
+    findUnique.mockResolvedValueOnce(user);
 
     const res = await ctx
       .http()
@@ -58,7 +65,7 @@ describe('POST /v1/auth/login', () => {
   });
 
   it('rejects a wrong password with 401 and sets no cookie', async () => {
-    ctx.prisma.user.findUnique.mockResolvedValueOnce(user);
+    findUnique.mockResolvedValueOnce(user);
 
     const res = await ctx
       .http()
@@ -70,13 +77,13 @@ describe('POST /v1/auth/login', () => {
   });
 
   it('answers an unknown email byte-identically to a wrong password', async () => {
-    ctx.prisma.user.findUnique.mockResolvedValueOnce(user);
+    findUnique.mockResolvedValueOnce(user);
     const wrongPassword = await ctx
       .http()
       .post('/v1/auth/login')
       .send({ email: SEEDED.email, password: 'not-the-password' });
 
-    ctx.prisma.user.findUnique.mockResolvedValueOnce(null);
+    findUnique.mockResolvedValueOnce(null);
     const unknownEmail = await ctx
       .http()
       .post('/v1/auth/login')
@@ -93,7 +100,7 @@ describe('GET /v1/me', () => {
   let user: typeof SEEDED & { passwordHash: string };
 
   beforeAll(async () => {
-    ctx = await createTestApp();
+    ctx = await createTestApp({ prismaDoubleUntilT3: prismaStub });
     user = { ...SEEDED, passwordHash: await hash(PASSWORD, HASH_OPTIONS) };
   });
 
@@ -102,7 +109,7 @@ describe('GET /v1/me', () => {
   });
 
   afterEach(() => {
-    ctx.prisma.user.findUnique.mockReset();
+    findUnique.mockReset();
   });
 
   it('rejects a request with no cookie', async () => {
@@ -112,7 +119,7 @@ describe('GET /v1/me', () => {
   });
 
   it('returns the user the cookie identifies', async () => {
-    ctx.prisma.user.findUnique.mockResolvedValueOnce(user); // login
+    findUnique.mockResolvedValueOnce(user); // login
     const login = await ctx
       .http()
       .post('/v1/auth/login')
@@ -121,7 +128,7 @@ describe('GET /v1/me', () => {
     const cookie = findCookie(login, COOKIE_NAME);
     expect(cookie).toBeDefined();
 
-    ctx.prisma.user.findUnique.mockResolvedValueOnce(user); // /me
+    findUnique.mockResolvedValueOnce(user); // /me
     const res = await ctx
       .http()
       .get('/v1/me')
@@ -129,7 +136,7 @@ describe('GET /v1/me', () => {
 
     expect(res.status).toBe(200);
     expect(res.body).toEqual({ id: SEEDED.id, email: SEEDED.email });
-    expect(ctx.prisma.user.findUnique).toHaveBeenLastCalledWith({
+    expect(findUnique).toHaveBeenLastCalledWith({
       where: { id: SEEDED.id },
     });
   });
@@ -146,17 +153,17 @@ describe('GET /v1/me', () => {
       .set('Cookie', `${COOKIE_NAME}=${forged}`);
 
     expect(res.status).toBe(401);
-    expect(ctx.prisma.user.findUnique).not.toHaveBeenCalled();
+    expect(findUnique).not.toHaveBeenCalled();
   });
 
   it('rejects a valid token whose user row is gone', async () => {
-    ctx.prisma.user.findUnique.mockResolvedValueOnce(user); // login
+    findUnique.mockResolvedValueOnce(user); // login
     const login = await ctx
       .http()
       .post('/v1/auth/login')
       .send({ email: SEEDED.email, password: PASSWORD });
 
-    ctx.prisma.user.findUnique.mockResolvedValueOnce(null); // /me - row deleted
+    findUnique.mockResolvedValueOnce(null); // /me - row deleted
     const res = await ctx
       .http()
       .get('/v1/me')
@@ -171,7 +178,7 @@ describe('POST /v1/auth/logout', () => {
   let user: typeof SEEDED & { passwordHash: string };
 
   beforeAll(async () => {
-    ctx = await createTestApp();
+    ctx = await createTestApp({ prismaDoubleUntilT3: prismaStub });
     user = { ...SEEDED, passwordHash: await hash(PASSWORD, HASH_OPTIONS) };
   });
 
@@ -180,11 +187,11 @@ describe('POST /v1/auth/logout', () => {
   });
 
   afterEach(() => {
-    ctx.prisma.user.findUnique.mockReset();
+    findUnique.mockReset();
   });
 
   it('clears the cookie with the attributes login set', async () => {
-    ctx.prisma.user.findUnique.mockResolvedValueOnce(user);
+    findUnique.mockResolvedValueOnce(user);
     const login = await ctx
       .http()
       .post('/v1/auth/login')
@@ -215,7 +222,7 @@ describe('POST /v1/auth/logout', () => {
   });
 
   it('leaves behind a cookie that no longer authenticates', async () => {
-    ctx.prisma.user.findUnique.mockResolvedValueOnce(user);
+    findUnique.mockResolvedValueOnce(user);
     const login = await ctx
       .http()
       .post('/v1/auth/login')
@@ -233,6 +240,6 @@ describe('POST /v1/auth/logout', () => {
 
     expect(res.status).toBe(401);
     // Rejected in the guard - the controller never ran.
-    expect(ctx.prisma.user.findUnique).toHaveBeenCalledTimes(1);
+    expect(findUnique).toHaveBeenCalledTimes(1);
   });
 });

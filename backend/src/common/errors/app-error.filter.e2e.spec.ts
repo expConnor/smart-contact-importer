@@ -1,17 +1,7 @@
-import {
-  Controller,
-  Get,
-  ValidationPipe,
-  VersioningType,
-} from '@nestjs/common';
-import type { INestApplication } from '@nestjs/common';
-import { Test } from '@nestjs/testing';
-import request from 'supertest';
-import { AppModule } from '../../app.module';
-import { PrismaService } from '../../prisma/prisma.service';
-import { VALIDATION_PIPE_OPTIONS } from './validation.options';
+import { Controller, Get } from '@nestjs/common';
+import { createTestApp } from '../../test/app.fixture';
+import type { TestApp } from '../../test/app.fixture';
 import type { ErrorBody } from './error-catalogue';
-import type { App } from 'supertest/types';
 
 // Test-module only. Never add this to AppModule.
 @Controller({ path: 'boom', version: '1' })
@@ -23,32 +13,23 @@ class BoomController {
 }
 
 describe('AppErrorFilter', () => {
-  let app: INestApplication;
-  const findUnique = jest.fn();
+  let ctx: TestApp;
 
   const anyString = expect.any(String) as unknown as string;
 
+  // Was a hand-rolled testing module with its own Prisma stub and its own copy
+  // of the main.ts globals. Both are gone: the stub because Postgres is no
+  // longer doubled, the copy because a second mirror of main.ts is a second
+  // thing to forget to update.
   beforeAll(async () => {
-    const moduleRef = await Test.createTestingModule({
-      imports: [AppModule],
-      controllers: [BoomController],
-    })
-      .overrideProvider(PrismaService)
-      .useValue({ user: { findUnique } })
-      .compile();
-
-    // logger: false — the filter warns on every branch; otherwise the run is noise.
-    app = moduleRef.createNestApplication({ logger: false });
-    app.enableVersioning({ type: VersioningType.URI });
-    app.useGlobalPipes(new ValidationPipe(VALIDATION_PIPE_OPTIONS));
-    await app.init();
+    ctx = await createTestApp({ controllers: [BoomController] });
   });
 
   afterAll(async () => {
-    await app.close();
+    await ctx.close();
   });
 
-  const http = () => request(app.getHttpServer() as App);
+  const http = () => ctx.http();
 
   it('routes validation failures through the envelope, not the default 400', async () => {
     const res = await http().post('/v1/auth/login').send({});
@@ -63,9 +44,9 @@ describe('AppErrorFilter', () => {
     ]);
   });
 
+  // No row is seeded, so the lookup misses against the real, truncated table —
+  // the same miss the stub used to fake with mockResolvedValueOnce(null).
   it('answers an unknown email with a 401 carrying nothing but code and message', async () => {
-    findUnique.mockResolvedValueOnce(null);
-
     const res = await http()
       .post('/v1/auth/login')
       .send({ email: 'nobody@example.com', password: 'whatever' });

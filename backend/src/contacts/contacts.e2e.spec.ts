@@ -5,6 +5,12 @@ import type { TestApp } from '../test/app.fixture';
 import type { ErrorBody } from '../common/errors/error-catalogue';
 import type { Contact } from '../generated/prisma/client';
 
+// T3 rewrites this file against the real database. Until then it opts out of
+// one, and spells the stub out here: app.fixture.ts no longer ships a factory
+// for a Prisma double.
+const findMany = jest.fn();
+const prismaStub = { contact: { findMany } };
+
 const USER_ID = '00000000-0000-4000-8000-000000000001';
 
 // Newest first — the order the service asks findMany for. A body matching this
@@ -97,7 +103,7 @@ describe('GET /v1/contacts', () => {
   let cookie: string;
 
   beforeAll(async () => {
-    ctx = await createTestApp();
+    ctx = await createTestApp({ prismaDoubleUntilT3: prismaStub });
     // The guard verifies a signature and reads no row, so signing with the
     // app's own TokenService is a whole login round-trip cheaper.
     const { token } = ctx.app.get(TokenService).sign(USER_ID);
@@ -109,7 +115,7 @@ describe('GET /v1/contacts', () => {
   });
 
   afterEach(() => {
-    ctx.prisma.contact.findMany.mockReset();
+    findMany.mockReset();
   });
 
   it('rejects a request with no cookie', async () => {
@@ -117,11 +123,11 @@ describe('GET /v1/contacts', () => {
 
     expect(res.status).toBe(401);
     // Rejected in the guard — the service never ran.
-    expect(ctx.prisma.contact.findMany).not.toHaveBeenCalled();
+    expect(findMany).not.toHaveBeenCalled();
   });
 
   it('returns the rows in an { items, nextCursor } envelope', async () => {
-    ctx.prisma.contact.findMany.mockResolvedValueOnce(ROWS);
+    findMany.mockResolvedValueOnce(ROWS);
 
     const res = await ctx.http().get('/v1/contacts').set('Cookie', cookie);
 
@@ -131,16 +137,16 @@ describe('GET /v1/contacts', () => {
   });
 
   it('asks the database for a total order, and for nothing else', async () => {
-    ctx.prisma.contact.findMany.mockResolvedValueOnce(ROWS);
+    findMany.mockResolvedValueOnce(ROWS);
 
     await ctx.http().get('/v1/contacts').set('Cookie', cookie);
 
-    expect(ctx.prisma.contact.findMany).toHaveBeenCalledTimes(1);
+    expect(findMany).toHaveBeenCalledTimes(1);
     // Exact argument: an empty `where` (no filters supplied), no `select`, no
     // cursor on page one, and the `id` tiebreaker that makes createdAt a total
     // order rather than a partial one. 51, not 50: the default page plus the
     // probe row that answers "is there more?".
-    expect(ctx.prisma.contact.findMany).toHaveBeenCalledWith({
+    expect(findMany).toHaveBeenCalledWith({
       where: {},
       orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
       cursor: undefined,
@@ -149,11 +155,11 @@ describe('GET /v1/contacts', () => {
   });
 
   it('asks for one row more than the page holds', async () => {
-    ctx.prisma.contact.findMany.mockResolvedValueOnce(ROWS);
+    findMany.mockResolvedValueOnce(ROWS);
 
     await ctx.http().get('/v1/contacts?limit=2').set('Cookie', cookie);
 
-    expect(ctx.prisma.contact.findMany).toHaveBeenCalledWith({
+    expect(findMany).toHaveBeenCalledWith({
       where: {},
       orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
       cursor: undefined,
@@ -162,7 +168,7 @@ describe('GET /v1/contacts', () => {
   });
 
   it('withholds the extra row and points the cursor at it', async () => {
-    ctx.prisma.contact.findMany.mockResolvedValueOnce([...ROWS, OVERFLOW_ROW]);
+    findMany.mockResolvedValueOnce([...ROWS, OVERFLOW_ROW]);
 
     const res = await ctx
       .http()
@@ -183,7 +189,7 @@ describe('GET /v1/contacts', () => {
   });
 
   it('carries the requested sort in the cursor, not the default', async () => {
-    ctx.prisma.contact.findMany.mockResolvedValueOnce([...ROWS, OVERFLOW_ROW]);
+    findMany.mockResolvedValueOnce([...ROWS, OVERFLOW_ROW]);
 
     const res = await ctx
       .http()
@@ -199,7 +205,7 @@ describe('GET /v1/contacts', () => {
   });
 
   it('opens page two on the row the cursor names', async () => {
-    ctx.prisma.contact.findMany.mockResolvedValueOnce(ROWS);
+    findMany.mockResolvedValueOnce(ROWS);
     const cursorParam = writeCursor({
       id: OVERFLOW_ROW.id,
       sort: '-createdAt',
@@ -215,7 +221,7 @@ describe('GET /v1/contacts', () => {
     // No `skip`: the cursor names the first row of this page, not the last row
     // of the previous one, so Prisma's inclusive cursor is already correct.
     // A `skip: 1` here would swallow OVERFLOW_ROW entirely.
-    expect(ctx.prisma.contact.findMany).toHaveBeenCalledWith({
+    expect(findMany).toHaveBeenCalledWith({
       where: {},
       orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
       cursor: { id: OVERFLOW_ROW.id },
@@ -239,7 +245,7 @@ describe('GET /v1/contacts', () => {
 
     expect(res.status).toBe(400);
     expect((res.body as ErrorBody).error.code).toBe('VALIDATION_FAILED');
-    expect(ctx.prisma.contact.findMany).not.toHaveBeenCalled();
+    expect(findMany).not.toHaveBeenCalled();
   });
 
   it.each([
@@ -260,13 +266,13 @@ describe('GET /v1/contacts', () => {
     expect(res.status).toBe(400);
     expect((res.body as ErrorBody).error.code).toBe('VALIDATION_FAILED');
     // Rejected while parsing the query — a tampered cursor never reaches the DB.
-    expect(ctx.prisma.contact.findMany).not.toHaveBeenCalled();
+    expect(findMany).not.toHaveBeenCalled();
   });
 
   it('returns no cursor when the page is full and nothing follows', async () => {
     // Two rows for a limit of two: the boundary where a naive `length === limit`
     // check would invent a page that does not exist.
-    ctx.prisma.contact.findMany.mockResolvedValueOnce(ROWS);
+    findMany.mockResolvedValueOnce(ROWS);
 
     const res = await ctx
       .http()
@@ -286,12 +292,12 @@ describe('GET /v1/contacts', () => {
 
       expect(res.status).toBe(400);
       expect((res.body as ErrorBody).error.code).toBe('VALIDATION_FAILED');
-      expect(ctx.prisma.contact.findMany).not.toHaveBeenCalled();
+      expect(findMany).not.toHaveBeenCalled();
     },
   );
 
   it('answers an empty table with 200 and an empty list', async () => {
-    ctx.prisma.contact.findMany.mockResolvedValueOnce([]);
+    findMany.mockResolvedValueOnce([]);
 
     const res = await ctx.http().get('/v1/contacts').set('Cookie', cookie);
 
@@ -307,14 +313,14 @@ describe('GET /v1/contacts', () => {
 
     expect(res.status).toBe(400);
     expect((res.body as ErrorBody).error.code).toBe('VALIDATION_FAILED');
-    expect(ctx.prisma.contact.findMany).not.toHaveBeenCalled();
+    expect(findMany).not.toHaveBeenCalled();
   });
 
   it('serialises timestamps and drops columns the DTO does not declare', async () => {
     // A column the row might carry that the DTO does not declare. The mapper
     // hand-lists its fields, so the row leaks nothing beyond the contract.
     const withStrayColumn = { ...ROWS[0], userId: USER_ID };
-    ctx.prisma.contact.findMany.mockResolvedValueOnce([withStrayColumn]);
+    findMany.mockResolvedValueOnce([withStrayColumn]);
 
     const res = await ctx.http().get('/v1/contacts').set('Cookie', cookie);
 

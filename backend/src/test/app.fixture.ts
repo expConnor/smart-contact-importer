@@ -1,3 +1,13 @@
+// Postgres is not doubled here (D3). The app talks to smart_contact_importer_test,
+// setup-e2e.ts TRUNCATEs it before every test, and db.fixture.ts reads the rows
+// back on a separate connection. A Prisma double can only prove that a service
+// called Prisma a certain way — which is exactly what four toHaveBeenCalledWith
+// assertions proved, right up until a behaviour-preserving refactor broke all
+// four without changing a single response.
+//
+// Anything built on this is an e2e spec and MUST be named `*.e2e.spec.ts`, or it
+// lands in the unit project, which runs with no container.
+
 import { ValidationPipe, VersioningType } from '@nestjs/common';
 import type { Type } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
@@ -8,25 +18,24 @@ import { AppModule } from '../app.module';
 import { PrismaService } from '../prisma/prisma.service';
 import { VALIDATION_PIPE_OPTIONS } from '../common/errors/validation.options';
 
-// Auth touches Postgres for exactly one thing: reading a user by email. Mocking
-// it keeps `npm run check` hermetic — no container, no seed, no .env.test.
-// Real-database tests belong to the paging slice, where the database IS the
-// thing under test.
-export type PrismaMock = {
-  user: { findUnique: jest.Mock };
-  contact: { findMany: jest.Mock };
-};
-
-export function createPrismaMock(): PrismaMock {
-  return {
-    user: { findUnique: jest.fn() },
-    contact: { findMany: jest.fn() },
-  };
-}
-
 export type CreateTestAppOptions = {
-  // Supply one to share it across a describe block; omitted, a fresh mock is made.
-  prisma?: PrismaMock;
+  /**
+   * Replaces PrismaService for this one app. The opt-out, and not a
+   * recommendation — D3 says Postgres is never doubled.
+   *
+   * Named after the phase that deletes it, because there is nothing structural
+   * stopping a new spec from reaching for it and D4's own argument applies:
+   * a fence each spec opts into is a fence one spec eventually forgets. Two
+   * callers remain — auth.e2e.spec.ts (T2) and contacts.e2e.spec.ts (T3) —
+   * each declaring its own stub in its own file. `grep -rn prismaDoubleUntilT3`
+   * is the whole census; when it returns two hits, delete both and this field.
+   *
+   * `unknown` on purpose. A shape-checked type is not available: a stub like
+   * `{ user: { findUnique: jest.fn() } }` cannot satisfy Partial<PrismaService>
+   * without spelling out a whole delegate, so the choice is `unknown` or a
+   * second mock type — and a second mock type is the thing T1 deleted.
+   */
+  prismaDoubleUntilT3?: unknown;
   // Test-module-only controllers (probes, throwers). Never added to AppModule.
   controllers?: Type<unknown>[];
 };
@@ -39,15 +48,18 @@ export type CreateTestAppOptions = {
  * reviewer never runs.
  */
 export async function createTestApp(options: CreateTestAppOptions = {}) {
-  const prisma = options.prisma ?? createPrismaMock();
-
-  const moduleRef = await Test.createTestingModule({
+  const builder = Test.createTestingModule({
     imports: [AppModule],
     controllers: options.controllers ?? [],
-  })
-    .overrideProvider(PrismaService)
-    .useValue(prisma)
-    .compile();
+  });
+
+  if (options.prismaDoubleUntilT3 !== undefined) {
+    builder
+      .overrideProvider(PrismaService)
+      .useValue(options.prismaDoubleUntilT3);
+  }
+
+  const moduleRef = await builder.compile();
 
   // logger: false — AppErrorFilter warns on every branch; otherwise runs are noise.
   const app = moduleRef.createNestApplication({ logger: false });
@@ -58,11 +70,11 @@ export async function createTestApp(options: CreateTestAppOptions = {}) {
   app.useGlobalPipes(new ValidationPipe(VALIDATION_PIPE_OPTIONS));
   // ──────────────────────
 
+  // Connects PrismaService (onModuleInit), unless a double displaced it.
   await app.init();
 
   return {
     app,
-    prisma,
     http: () => request(app.getHttpServer() as App),
     close: () => app.close(),
   };

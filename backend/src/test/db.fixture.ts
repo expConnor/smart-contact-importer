@@ -32,8 +32,10 @@ export function testDb(): PrismaClient {
     assertTestDatabase(process.env.DATABASE_URL);
     client = new PrismaClient({
       adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL }),
-      // Silent, unlike PrismaService's dev default: resetDb runs before every
-      // test and would otherwise print a TRUNCATE per test.
+      // Silent: resetDb runs before every test and would otherwise print a
+      // TRUNCATE per test. PrismaService is down to ['warn', 'error'] under
+      // test for the same reason, but this client has nothing worth warning
+      // about — it issues one statement and it is ours.
       log: [],
     });
   }
