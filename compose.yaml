@@ -18,6 +18,9 @@ services:
       # VOLUME /var/lib/postgresql. Mounting the old .../data path silently gives
       # you a throwaway anonymous volume instead of persistence.
       - pgdata:/var/lib/postgresql
+      # Runs once, on first init of an empty pgdata, to add
+      # ${POSTGRES_DB}_test. See the script for the existing-volume path.
+      - ./db/initdb:/docker-entrypoint-initdb.d:ro
     healthcheck:
       # Lets dependents wait on `condition: service_healthy` instead of sleeping.
       test:

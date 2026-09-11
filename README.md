@@ -52,6 +52,37 @@ Unlike the root `.env`, this one is not optional — Prisma throws on a missing
 `DATABASE_URL` rather than falling back. If you changed `DB_PORT` at the root,
 change the port in `DATABASE_URL` to match.
 
+### Tests
+
+`npm run check` runs both layers. They differ in what they need:
+
+| Script          | Needs the container? | Covers                                  |
+| --------------- | -------------------- | --------------------------------------- |
+| `npm run test:unit` | no               | pure functions — no Nest, no database   |
+| `npm run test:e2e`  | **yes**          | the real app over HTTP, real Postgres   |
+
+So `docker compose up -d` before `npm run check`, or the e2e half fails.
+
+E2e runs against a **separate** `smart_contact_importer_test` database and
+TRUNCATEs every table between tests. It never touches your dev data: the suite
+refuses to start unless the database name ends in `_test`, and
+[backend/src/test/global-setup.ts](backend/src/test/global-setup.ts) applies
+migrations only after that check passes. A fresh `docker compose up -d` creates
+the database via [db/initdb](db/initdb); on a pre-existing volume the first
+e2e run creates it.
+
+Test settings are fixed and committed in
+[backend/.env.test](backend/.env.test) — not copied from an example, so every
+machine runs the same suite. **If you changed `DB_PORT` at the root, you must
+also create `backend/.env.test.local`** (gitignored, loaded after `.env.test`):
+
+```bash
+echo 'DATABASE_URL=postgresql://app:app@localhost:5433/smart_contact_importer_test?schema=public' \
+  > backend/.env.test.local
+```
+
+Without it, `npm run test:e2e` fails with `ECONNREFUSED` on the default port.
+
 `ANTHROPIC_API_KEY` is optional and empty by default; column inference falls
 back to a deterministic heuristic without it.
 

@@ -17,6 +17,10 @@ build/
 .env
 .env.*
 !.env.example
+# .env.test IS committed — the e2e suite must be identical on every machine,
+# and it holds nothing secret. Host-specific overrides (a non-default DB_PORT)
+# go in backend/.env.test.local, which `*.local` below keeps out.
+!.env.test
 *.local
 
 # ─── Prisma ──────────────────────────────────────────────────────────────────
