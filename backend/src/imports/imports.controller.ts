@@ -1,6 +1,7 @@
 import {
   Controller,
   Post,
+  Res,
   UploadedFile,
   UseGuards,
   UseInterceptors,
@@ -12,19 +13,30 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { IdempotencyKey } from './decorators/idempotency-key.decorator';
 import { CreateImportResponseDto } from './dto/create-import-response.dto';
+import { CreateImportResult } from './types';
+import { type Response } from 'express';
 
 @Controller({ path: 'imports', version: '1' })
+@UseGuards(JwtAuthGuard)
 export class ImportsController {
   constructor(private readonly importsService: ImportsService) {}
 
   @Post('/')
-  @UseGuards(JwtAuthGuard, IdempotencyKeyGuard)
+  @UseGuards(IdempotencyKeyGuard)
   @UseInterceptors(FileInterceptor('file'))
   async create(
-    @CurrentUser() _userId: string,
-    @IdempotencyKey() _idempotencyKey: string,
-    @UploadedFile() _file: Express.Multer.File,
+    @CurrentUser() userId: string,
+    @IdempotencyKey() idempotencyKey: string,
+    @UploadedFile() file: Express.Multer.File,
+    @Res({ passthrough: true }) res: Response,
   ): Promise<CreateImportResponseDto> {
-    return await this.importsService.create();
+    const importResult: CreateImportResult = await this.importsService.create(
+      userId,
+      idempotencyKey,
+      file,
+    );
+    res.statusCode = importResult.replayed ? 200 : 201;
+
+    return { id: importResult.id };
   }
 }
