@@ -31,3 +31,10 @@ export type AnalysisOutcome = {
 };
 
 export type ImportOutcome = { importedRows: number; failedRows: number };
+
+export interface JobHandler<TOutcome> {
+  run(job: ClaimedJob): Promise<TOutcome>;
+}
+
+export const ANALYSIS_HANDLER = Symbol('ANALYSIS_HANDLER');
+export const IMPORT_HANDLER = Symbol('IMPORT_HANDLER');
