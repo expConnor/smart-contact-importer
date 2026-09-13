@@ -8,11 +8,16 @@ import {
   type JobHandler,
   WorkerPhase,
 } from './types';
+import { env } from '../config/env';
 
 // Written for the person reading the row, not the person reading the log:
 // failureReason is rendered in the UI. The error itself goes to logger.error.
 const ANALYSIS_FAILED = 'The file could not be read.';
 const IMPORT_FAILED = 'The import could not be completed.';
+
+// Three beats per lease: two can be lost to a slow database before the row
+// becomes claimable by someone else.
+const BEAT_MS = Math.floor((env.WORKER_LEASE_SECONDS * 1000) / 3);
 
 @Injectable()
 export class WorkerService {
@@ -58,13 +63,61 @@ export class WorkerService {
     if (!job) return;
 
     try {
-      const outcome = await handler.run(job);
+      const outcome = await this.withHeartbeat(job.id, (signal) =>
+        handler.run(job, signal),
+      );
       const settled = await settle(job.id, outcome);
       if (!settled) this.leaseLost(phase, job.id, 'settle');
     } catch (error) {
       this.logger.error(`${phase} job ${job.id} threw`, detailOf(error));
       const failed = await this.workerRepository.fail(job.id, failureReason);
       if (!failed) this.leaseLost(phase, job.id, 'fail');
+    }
+  }
+
+  /**
+   * Renews the lease under `work`, and aborts it the moment a renewal fails.
+   * The timer is unref'd — a pending beat must not hold the process open.
+   */
+  private async withHeartbeat<T>(
+    jobId: string,
+    work: (signal: AbortSignal) => Promise<T>,
+  ): Promise<T> {
+    const controller = new AbortController();
+    let timer: NodeJS.Timeout | null = null;
+
+    const beat = async (): Promise<void> => {
+      let held: boolean;
+      try {
+        held = await this.workerRepository.extendLease(jobId);
+      } catch (error) {
+        // The timer owns this call: a throw here is an unhandled rejection.
+        this.logger.error(`Heartbeat on job ${jobId} threw`, detailOf(error));
+        held = false;
+      }
+
+      if (!held) {
+        this.logger.warn(`Lease lost on job ${jobId}: heartbeat wrote nothing`);
+        controller.abort();
+        return;
+      }
+
+      schedule();
+    };
+
+    const schedule = (): void => {
+      if (controller.signal.aborted) return;
+      timer = setTimeout(() => void beat(), BEAT_MS);
+      timer.unref();
+    };
+
+    schedule();
+
+    try {
+      return await work(controller.signal);
+    } finally {
+      if (timer) clearTimeout(timer);
+      controller.abort();
     }
   }
 
