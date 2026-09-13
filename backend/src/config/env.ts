@@ -27,6 +27,7 @@ const envSchema = z.object({
   WORKER_LEASE_SECONDS: z.coerce.number().int().positive().default(60),
   WORKER_MAX_ATTEMPTS: z.coerce.number().int().positive().default(3),
   WORKER_POLL_INTERVAL_MS: z.coerce.number().int().positive().default(1000),
+  WORKER_ENABLED: z.stringbool().default(true),
 });
 
 export type Env = z.infer<typeof envSchema>;

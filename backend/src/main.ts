@@ -7,6 +7,7 @@ import { VALIDATION_PIPE_OPTIONS } from './common/errors/validation.options';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+  app.enableShutdownHooks();
   app.enableVersioning({ type: VersioningType.URI });
 
   app.use(cookieParser());
