@@ -24,6 +24,9 @@ const envSchema = z.object({
     .max(2_000_000_000)
     .default(10_485_760),
   ANTHROPIC_API_KEY: z.string().optional(),
+  WORKER_LEASE_SECONDS: z.coerce.number().int().positive().default(60),
+  WORKER_MAX_ATTEMPTS: z.coerce.number().int().positive().default(3),
+  WORKER_POLL_INTERVAL_MS: z.coerce.number().int().positive().default(1000),
 });
 
 export type Env = z.infer<typeof envSchema>;
