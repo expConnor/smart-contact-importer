@@ -7,6 +7,7 @@
 // outside it trips TS6059 the moment src/ imports it.
 generator client {
   provider = "prisma-client"
+  previewFeatures = ["typedSql"]
   output   = "../src/generated/prisma"
 }
 
