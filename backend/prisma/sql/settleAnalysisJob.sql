@@ -1,4 +1,4 @@
--- @description Record analysis findings and hand the job to the user for mapping. Returns no rows if the lease was lost.
+-- @description Record analysis findings and hand the job to the user for mapping. Resets the attempt budget for the import phase. Returns no rows if the lease was lost.
 -- @param {String} $1:leaseOwner worker identity; must still hold a live lease
 -- @param {String} $2:jobId the job being settled
 -- @param {Json} $3:detectedHeaders header cells as parsed from the file
@@ -12,6 +12,7 @@
 UPDATE "ImportJob"
 SET
   "status" = 'AWAITING_MAPPING',
+  "attempts" = 0,
   "detectedHeaders" = $3,
   "detectedDelimiter" = $4,
   "detectedEncoding" = $5,
