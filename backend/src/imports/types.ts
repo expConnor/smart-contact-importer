@@ -17,3 +17,8 @@ export type ColumnMapping = {
   targetField: TargetField;
   confidence: number;
 };
+
+export type MappingPayload = {
+  headerRowIndex: number;
+  mappings: ColumnMapping[];
+};
