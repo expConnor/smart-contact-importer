@@ -109,5 +109,16 @@ const FIXTURES_DIR = resolve(__dirname, '../../../../fixtures');
  *   "same key, different bytes".
  */
 export function csvFixture(name: string): Upload {
-  return { filename: name, body: readFileSync(resolve(FIXTURES_DIR, name)) };
+  return { filename: name, body: readFileSync(fixturePath(name)) };
+}
+
+/**
+ * The same file as a path.
+ *
+ * `countDataRows` and `rowStream` open the file themselves rather than taking
+ * bytes — the whole point of them is that a 10 MiB import never becomes a 10 MiB
+ * string — so a spec for either needs somewhere on disk to point at.
+ */
+export function fixturePath(name: string): string {
+  return resolve(FIXTURES_DIR, name);
 }

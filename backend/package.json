@@ -34,6 +34,7 @@
     "cookie-parser": "^1.4.7",
     "iconv-lite": "^0.7.3",
     "multer": "^2.3.0",
+    "papaparse": "^5.7.0",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.1",
     "zod": "^4.5.4"
@@ -47,6 +48,7 @@
     "@types/jest": "^30.0.0",
     "@types/multer": "^2.2.0",
     "@types/node": "^24.0.0",
+    "@types/papaparse": "^5.5.2",
     "@types/supertest": "^7.0.0",
     "eslint": "^9.18.0",
     "eslint-config-prettier": "^10.0.1",
