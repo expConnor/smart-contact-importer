@@ -1,9 +1,10 @@
-import { createHash } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 import { readFile, readdir, rm } from 'node:fs/promises';
 import { basename, join } from 'node:path';
 import { createTestApp } from '../test/app.fixture';
 import type { TestApp } from '../test/app.fixture';
 import { cookieFor, seedUser } from '../test/auth.fixture';
+import { aJob, seedJobs } from '../test/builders/job.builder';
 import {
   aCsv,
   anEmptyCsv,
@@ -346,6 +347,151 @@ describe('POST /v1/imports', () => {
       // is. Two jobs, two files.
       await expect(testDb().importJob.count()).resolves.toBe(2);
       await expect(storedUploads()).resolves.toHaveLength(2);
+    });
+  });
+});
+
+describe('GET /v1/imports/:id', () => {
+  let ctx: TestApp;
+  let cookie: string;
+
+  beforeAll(async () => {
+    ctx = await createTestApp();
+    cookie = cookieFor(ctx, USER_ID);
+  });
+
+  afterAll(async () => {
+    await ctx.close();
+  });
+
+  beforeEach(async () => {
+    await seedUser({ id: USER_ID });
+    await seedUser({ id: OTHER_USER_ID });
+  });
+
+  function getImport(id: string) {
+    return ctx.http().get(`/v1/imports/${id}`).set('Cookie', cookie);
+  }
+
+  describe('rejections', () => {
+    it('rejects a request with no cookie', async () => {
+      const [job] = await seedJobs([aJob({ userId: USER_ID })]);
+
+      const res = await ctx.http().get(`/v1/imports/${job.id}`);
+
+      expect(res.status).toBe(401);
+      expect((res.body as ErrorBody).error.code).toBe('UNAUTHORIZED');
+    });
+
+    it('rejects an id that is not a UUID with 400, not a 500', async () => {
+      // Without ParseUUIDPipe this reaches Postgres, which refuses the cast on
+      // a @db.Uuid column — and that error is not an HttpException.
+      const res = await getImport('not-a-uuid');
+
+      expect(res.status).toBe(400);
+      expect((res.body as ErrorBody).error.code).toBe('VALIDATION_FAILED');
+    });
+
+    it('answers 404 for an id that matches no job', async () => {
+      const res = await getImport(randomUUID());
+
+      expect(res.status).toBe(404);
+      expect(res.body).toEqual({
+        error: { code: 'NOT_FOUND', message: 'Not found' },
+      });
+    });
+
+    it("answers another user's job exactly as it answers an unknown id", async () => {
+      const [theirs] = await seedJobs([aJob({ userId: OTHER_USER_ID })]);
+
+      const res = await getImport(theirs.id);
+      const unknown = await getImport(randomUUID());
+
+      // 404, not 403: a different answer would confirm the id exists. The
+      // bodies are compared to each other, not only to a code, so any detail
+      // that leaks into one of them fails here.
+      expect(res.status).toBe(404);
+      expect(res.body).toEqual(unknown.body);
+    });
+  });
+
+  describe('a job the caller owns', () => {
+    it('projects an analysed job, unwrapping the stored JSON', async () => {
+      // Written with every column the analysis step fills, including the ones
+      // the body leaves out, so a leak shows up as an extra key below.
+      const job = await testDb().importJob.create({
+        data: {
+          ...aJob({
+            userId: USER_ID,
+            status: 'AWAITING_MAPPING',
+            detectedDelimiter: ',',
+            detectedEncoding: 'utf-8',
+            headerRowIndex: 0,
+            inferenceSource: 'HEURISTIC',
+            totalRows: 2,
+          }),
+          detectedHeaders: { headers: ['email', 'name'] },
+          sampleRows: {
+            rows: [
+              ['ada@example.com', 'Ada Lovelace'],
+              ['grace@example.com', 'Grace Hopper'],
+            ],
+          },
+          proposedMapping: {
+            mappings: [
+              { sourceColumn: 'email', targetField: 'email', confidence: 0.9 },
+              { sourceColumn: 'name', targetField: 'name', confidence: 0.9 },
+            ],
+          },
+        },
+      });
+
+      const res = await getImport(job.id);
+
+      expect(res.status).toBe(200);
+      // toEqual, not toMatchObject: the keys the body must NOT carry (the lease,
+      // storage details, detectedHeaders/Delimiter/Encoding, confirmedMapping)
+      // are asserted by being absent here.
+      expect(res.body).toEqual({
+        id: job.id,
+        status: 'AWAITING_MAPPING',
+        headerRowIndex: 0,
+        sampleRows: [
+          ['ada@example.com', 'Ada Lovelace'],
+          ['grace@example.com', 'Grace Hopper'],
+        ],
+        proposedMapping: [
+          { sourceColumn: 'email', targetField: 'email', confidence: 0.9 },
+          { sourceColumn: 'name', targetField: 'name', confidence: 0.9 },
+        ],
+        inferenceSource: 'HEURISTIC',
+        failureReason: null,
+        totalRows: 2,
+        importedRows: 0,
+        failedRows: 0,
+      });
+    });
+
+    it('answers a job not yet analysed with nulls, not a crash', async () => {
+      // The JSON columns are NULL here, so the mapper's unwrap has nothing to
+      // unwrap. `row.sampleRows.rows` would be a 500.
+      const [job] = await seedJobs([aJob({ userId: USER_ID })]);
+
+      const res = await getImport(job.id);
+
+      expect(res.status).toBe(200);
+      expect(res.body).toEqual({
+        id: job.id,
+        status: 'PENDING_ANALYSIS',
+        headerRowIndex: null,
+        sampleRows: null,
+        proposedMapping: null,
+        inferenceSource: null,
+        failureReason: null,
+        totalRows: null,
+        importedRows: 0,
+        failedRows: 0,
+      });
     });
   });
 });

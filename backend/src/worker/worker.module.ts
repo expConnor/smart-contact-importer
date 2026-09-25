@@ -4,7 +4,7 @@ import { WorkerRepository } from './worker.repository';
 import { PrismaModule } from '../prisma/prisma.module';
 import { hostname } from 'node:os';
 import { ANALYSIS_HANDLER, IMPORT_HANDLER, WORKER_ID } from './types';
-import { NoopAnalysisHandler } from './handlers/noop.analysis.handler';
+import { HeuristicAnalysisHandler } from './handlers/heuristic-analysis.handler';
 import { NoopImportHandler } from './handlers/noop.import.handler';
 import { WorkerLoop } from './worker.loop';
 
@@ -15,7 +15,7 @@ import { WorkerLoop } from './worker.loop';
     WorkerRepository,
     WorkerLoop,
     { provide: WORKER_ID, useValue: `${hostname()}#${process.pid}` },
-    { provide: ANALYSIS_HANDLER, useClass: NoopAnalysisHandler },
+    { provide: ANALYSIS_HANDLER, useClass: HeuristicAnalysisHandler },
     { provide: IMPORT_HANDLER, useClass: NoopImportHandler },
   ],
 })

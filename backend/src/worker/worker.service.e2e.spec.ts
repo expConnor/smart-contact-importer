@@ -2,17 +2,17 @@
 // must never start under test — createTestApp boots the real AppModule, so a
 // timer would claim the job the test is about to assert on.
 //
-// What each phase writes to the row is worker.repository.e2e.spec.ts's
-// business. This file only proves tick() reaches both of them, and what it
-// does when the work throws.
+// How settle writes a row is worker.repository.e2e.spec.ts's business. This
+// file proves tick() reaches both phases, that the analysis phase runs the real
+// handler against the uploaded bytes, and what it does when the work throws.
 
 import { createTestApp } from '../test/app.fixture';
 import type { TestApp } from '../test/app.fixture';
 import { cookieFor, seedUser } from '../test/auth.fixture';
 import { aJob, seedJobs } from '../test/builders/job.builder';
-import { aCsv } from '../test/builders/upload.builder';
+import { aCsv, csvFixture } from '../test/builders/upload.builder';
+import type { Upload } from '../test/builders/upload.builder';
 import { testDb } from '../test/db.fixture';
-import { WorkerRepository } from './worker.repository';
 import { WorkerService } from './worker.service';
 import type { CreateImportResponseDto } from '../imports/dto/create-import-response.dto';
 
@@ -25,6 +25,18 @@ let cookie: string;
 
 function jobRow(id: string) {
   return testDb().importJob.findUniqueOrThrow({ where: { id } });
+}
+
+/** Through the API, so the file is on disk where the handler will look. */
+async function upload(file: Upload): Promise<string> {
+  const res = await ctx
+    .http()
+    .post('/v1/imports')
+    .set('Cookie', cookie)
+    .set('Idempotency-Key', KEY)
+    .attach('file', file.body, file.filename)
+    .expect(201);
+  return (res.body as CreateImportResponseDto).id;
 }
 
 beforeAll(async () => {
@@ -42,27 +54,65 @@ beforeEach(async () => {
   await seedUser({ id: USER_ID });
 });
 
-// The throwing test spies on a prototype the whole app shares. Without this it
-// would leak into every test after it in this file.
-afterEach(() => {
-  jest.restoreAllMocks();
-});
-
 describe('tick', () => {
-  it('carries an uploaded file to AWAITING_MAPPING', async () => {
-    const file = aCsv();
-    const res = await ctx
-      .http()
-      .post('/v1/imports')
-      .set('Cookie', cookie)
-      .set('Idempotency-Key', KEY)
-      .attach('file', file.body, file.filename)
-      .expect(201);
-    const { id } = res.body as CreateImportResponseDto;
+  it('carries an uploaded file to AWAITING_MAPPING with its real findings', async () => {
+    const id = await upload(aCsv());
 
     await worker.tick();
 
-    expect((await jobRow(id)).status).toBe('AWAITING_MAPPING');
+    // aCsv() is a header and two rows. The fake handler this replaced answered
+    // headerRowIndex 3 and totalRows 42 for every file, so both numbers below
+    // fail against it.
+    expect(await jobRow(id)).toMatchObject({
+      status: 'AWAITING_MAPPING',
+      headerRowIndex: 0,
+      totalRows: 2,
+      inferenceSource: 'HEURISTIC',
+      // The stored shape is a { mappings } wrapper, not a bare array.
+      proposedMapping: {
+        mappings: expect.arrayContaining([
+          expect.objectContaining({
+            sourceColumn: 'email',
+            targetField: 'email',
+          }),
+        ]) as unknown,
+      },
+    });
+  });
+
+  it('skips the preamble of a LinkedIn export, end to end', async () => {
+    const id = await upload(csvFixture('linkedin-connections.csv'));
+
+    await worker.tick();
+
+    const res = await ctx
+      .http()
+      .get(`/v1/imports/${id}`)
+      .set('Cookie', cookie)
+      .expect(200);
+
+    // Three lines of "Notes:" preamble sit above the header. A parser that
+    // takes row 0 as the header offers `Notes:` as a column; one that takes it
+    // as data counts it as a contact.
+    expect(res.body).toMatchObject({
+      status: 'AWAITING_MAPPING',
+      headerRowIndex: 3,
+      totalRows: 10,
+      // One entry per header, in order, and nothing else.
+      proposedMapping: [
+        'First Name',
+        'Last Name',
+        'URL',
+        'Email Address',
+        'Company',
+        'Position',
+        'Connected On',
+      ].map((sourceColumn): unknown =>
+        expect.objectContaining({ sourceColumn }),
+      ),
+    });
+    const { sampleRows } = res.body as { sampleRows: string[][] };
+    expect(sampleRows[0].slice(0, 2)).toEqual(['Kai', 'Ferreira']);
   });
 
   it('carries a mapped job to COMPLETED', async () => {
@@ -78,12 +128,10 @@ describe('tick', () => {
   });
 
   it('fails the job when the work throws, and still resolves', async () => {
+    // Seeded, never uploaded: storagePath names a file that is not on disk, so
+    // the real handler's read throws. Same path as an upload deleted from under
+    // a queued job.
     const [job] = await seedJobs([aJob({ userId: USER_ID })]);
-    // The only seam at this slice: the work is inline. Slice iv replaces this
-    // spy with a throwing handler provider.
-    jest
-      .spyOn(WorkerRepository.prototype, 'settleAnalysis')
-      .mockRejectedValueOnce(new Error('boom'));
 
     // A rejection here would kill the poll loop, so it is half the assertion.
     await expect(worker.tick()).resolves.toBeUndefined();

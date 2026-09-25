@@ -4,6 +4,8 @@ import { PrismaService } from '../prisma/prisma.service';
 import { ImportsStorage } from './storage';
 import { assertCsvPresent, isIdempotencyConflict } from './imports.rules';
 import type { CreateImportResult } from './types';
+import { ImportJobResponseDto } from './dto/import-job-response.dto';
+import { toImportJobResponseDto } from './import-job.mapper';
 
 @Injectable()
 export class ImportsService {
@@ -30,6 +32,16 @@ export class ImportsService {
         await this.storage.discard(file.filename);
       }
     }
+  }
+
+  // Another user's job answers exactly like an unknown id: a 403 would confirm
+  // the id exists.
+  async findOne(userId: string, id: string): Promise<ImportJobResponseDto> {
+    const job = await this.prisma.importJob.findUnique({ where: { id } });
+    if (!job || job.userId !== userId) {
+      throw new AppError('NOT_FOUND');
+    }
+    return toImportJobResponseDto(job);
   }
 
   // Insert first and arbitrate the violation, rather than read-then-insert:
