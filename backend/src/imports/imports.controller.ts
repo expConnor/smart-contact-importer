@@ -1,6 +1,8 @@
 import {
+  Body,
   Controller,
   Get,
+  HttpCode,
   Param,
   ParseUUIDPipe,
   Post,
@@ -44,13 +46,21 @@ export class ImportsController {
     return { id: importResult.id };
   }
 
-  // ParseUUIDPipe turns a malformed id into a 400 here. Without it the id
-  // reaches Postgres, whose uuid cast error surfaces as a 500.
   @Get(':id')
   async findOne(
     @CurrentUser() userId: string,
     @Param('id', ParseUUIDPipe) id: string,
   ): Promise<ImportJobResponseDto> {
     return this.importsService.findOne(userId, id);
+  }
+
+  @Post(':id/mapping')
+  @HttpCode(202)
+  async confirmMapping(
+    @CurrentUser() userId: string,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() body: unknown,
+  ): Promise<ImportJobResponseDto> {
+    return this.importsService.confirmMapping(userId, id, body);
   }
 }

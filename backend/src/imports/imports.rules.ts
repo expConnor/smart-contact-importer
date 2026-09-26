@@ -30,6 +30,15 @@ export function isIdempotencyConflict(error: unknown): boolean {
   return named === undefined || named.includes(IDEMPOTENCY_FIELD);
 }
 
+// P2025: an update's WHERE matched no row. For a conditional update this means
+// the row exists but has moved on, so the caller answers 409.
+export function isRecordNotFound(error: unknown): boolean {
+  return (
+    error instanceof Prisma.PrismaClientKnownRequestError &&
+    error.code === 'P2025'
+  );
+}
+
 // Prisma 7 routes Postgres errors through the driver adapter, which leaves
 // meta.target undefined and names the constraint under
 // meta.driverAdapterError.cause.constraint — as { index } for a named unique

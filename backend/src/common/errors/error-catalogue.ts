@@ -22,6 +22,10 @@ export const CATALOGUE = {
     status: HttpStatus.PAYLOAD_TOO_LARGE,
     message: 'Payload too large',
   },
+  MAPPING_INVALID: {
+    status: HttpStatus.UNPROCESSABLE_ENTITY,
+    message: 'Mapping does not fit the file',
+  },
 } satisfies Record<string, { status: HttpStatus; message: string }>;
 
 export type ErrorCode = keyof typeof CATALOGUE;
@@ -38,4 +42,5 @@ export const STATUS_TO_CODE: Record<number, ErrorCode> = {
   500: 'INTERNAL',
   409: 'CONFLICT',
   413: 'PAYLOAD_TOO_LARGE',
+  422: 'MAPPING_INVALID',
 };

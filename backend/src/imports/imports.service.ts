@@ -1,11 +1,19 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { AppError } from '../common/errors/app.error';
+import type { ImportJob } from '../generated/prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { ImportsStorage } from './storage';
-import { assertCsvPresent, isIdempotencyConflict } from './imports.rules';
+import {
+  assertCsvPresent,
+  isIdempotencyConflict,
+  isRecordNotFound,
+} from './imports.rules';
+import { validateMapping } from './analysis/validate';
 import type { CreateImportResult } from './types';
 import { ImportJobResponseDto } from './dto/import-job-response.dto';
 import { toImportJobResponseDto } from './import-job.mapper';
+
+type StoredHeaders = { headers: string[] };
 
 @Injectable()
 export class ImportsService {
@@ -34,14 +42,56 @@ export class ImportsService {
     }
   }
 
+  async findOne(userId: string, id: string): Promise<ImportJobResponseDto> {
+    return toImportJobResponseDto(await this.findOwned(userId, id));
+  }
+
+  async confirmMapping(
+    userId: string,
+    id: string,
+    body: unknown,
+  ): Promise<ImportJobResponseDto> {
+    const job = await this.findOwned(userId, id);
+    if (job.status !== 'AWAITING_MAPPING') {
+      throw new AppError('CONFLICT');
+    }
+
+    const result = validateMapping(
+      {
+        headers: (job.detectedHeaders as StoredHeaders | null)?.headers ?? [],
+        headerRowIndex: job.headerRowIndex ?? -1,
+      },
+      body,
+    );
+    if (!result.ok) {
+      throw new AppError('MAPPING_INVALID', result.issues);
+    }
+
+    try {
+      const updated = await this.prisma.importJob.update({
+        where: { id, status: 'AWAITING_MAPPING' },
+        data: {
+          status: 'PENDING_IMPORT',
+          confirmedMapping: { mappings: result.mapping.mappings },
+        },
+      });
+      return toImportJobResponseDto(updated);
+    } catch (error) {
+      if (isRecordNotFound(error)) {
+        throw new AppError('CONFLICT');
+      }
+      throw error;
+    }
+  }
+
   // Another user's job answers exactly like an unknown id: a 403 would confirm
   // the id exists.
-  async findOne(userId: string, id: string): Promise<ImportJobResponseDto> {
+  private async findOwned(userId: string, id: string): Promise<ImportJob> {
     const job = await this.prisma.importJob.findUnique({ where: { id } });
     if (!job || job.userId !== userId) {
       throw new AppError('NOT_FOUND');
     }
-    return toImportJobResponseDto(job);
+    return job;
   }
 
   // Insert first and arbitrate the violation, rather than read-then-insert:

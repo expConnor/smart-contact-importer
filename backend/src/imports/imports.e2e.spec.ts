@@ -495,3 +495,278 @@ describe('GET /v1/imports/:id', () => {
     });
   });
 });
+
+describe('POST /v1/imports/:id/mapping', () => {
+  let ctx: TestApp;
+  let cookie: string;
+
+  const HEADERS = ['email', 'name', 'company'];
+  const PROPOSED = [
+    { sourceColumn: 'email', targetField: 'email', confidence: 0.9 },
+    { sourceColumn: 'name', targetField: 'name', confidence: 0.9 },
+    { sourceColumn: 'company', targetField: 'company', confidence: 0.9 },
+  ];
+  const VALID = { headerRowIndex: 0, mappings: PROPOSED };
+
+  beforeAll(async () => {
+    ctx = await createTestApp();
+    cookie = cookieFor(ctx, USER_ID);
+  });
+
+  afterAll(async () => {
+    await ctx.close();
+  });
+
+  beforeEach(async () => {
+    await seedUser({ id: USER_ID });
+    await seedUser({ id: OTHER_USER_ID });
+  });
+
+  /**
+   * A job as the analysis settle leaves it. The route checks the mapping
+   * against detectedHeaders and headerRowIndex, which aJob leaves null.
+   */
+  function seedAwaitingJob(userId: string = USER_ID) {
+    return testDb().importJob.create({
+      data: {
+        ...aJob({
+          userId,
+          status: 'AWAITING_MAPPING',
+          detectedDelimiter: ',',
+          detectedEncoding: 'utf-8',
+          headerRowIndex: 0,
+          inferenceSource: 'HEURISTIC',
+          totalRows: 2,
+        }),
+        detectedHeaders: { headers: HEADERS },
+        sampleRows: {
+          rows: [
+            ['ada@example.com', 'Ada Lovelace', 'Analytical Engines'],
+            ['grace@example.com', 'Grace Hopper', 'UNIVAC'],
+          ],
+        },
+        proposedMapping: { mappings: PROPOSED },
+      },
+    });
+  }
+
+  function postMapping(id: string, body: unknown, as: string = cookie) {
+    return ctx
+      .http()
+      .post(`/v1/imports/${id}/mapping`)
+      .set('Cookie', as)
+      .send(body as object);
+  }
+
+  describe('rejections', () => {
+    it('rejects a request with no cookie', async () => {
+      const job = await seedAwaitingJob();
+
+      const res = await ctx
+        .http()
+        .post(`/v1/imports/${job.id}/mapping`)
+        .send(VALID);
+
+      expect(res.status).toBe(401);
+      expect((res.body as ErrorBody).error.code).toBe('UNAUTHORIZED');
+      expect((await jobRow(job.id)).status).toBe('AWAITING_MAPPING');
+    });
+
+    it('rejects an id that is not a UUID with 400, not a 500', async () => {
+      const res = await postMapping('not-a-uuid', VALID);
+
+      expect(res.status).toBe(400);
+      expect((res.body as ErrorBody).error.code).toBe('VALIDATION_FAILED');
+    });
+
+    it("answers another user's job exactly as it answers an unknown id", async () => {
+      const theirs = await seedAwaitingJob(OTHER_USER_ID);
+
+      const res = await postMapping(theirs.id, VALID);
+      const unknown = await postMapping(randomUUID(), VALID);
+
+      // 404, not 403: a different answer would confirm the id exists.
+      expect(res.status).toBe(404);
+      expect(unknown.body).toEqual({
+        error: { code: 'NOT_FOUND', message: 'Not found' },
+      });
+      expect(res.body).toEqual(unknown.body);
+      // And their job is untouched: the owner check runs before the write.
+      await expect(jobRow(theirs.id)).resolves.toEqual(theirs);
+    });
+
+    it.each(['PENDING_ANALYSIS', 'PENDING_IMPORT'] as const)(
+      'answers 409 for a job in %s, and leaves the row alone',
+      async (status) => {
+        const [job] = await seedJobs([aJob({ userId: USER_ID, status })]);
+        const before = await jobRow(job.id);
+
+        const res = await postMapping(job.id, VALID);
+
+        expect(res.status).toBe(409);
+        expect((res.body as ErrorBody).error.code).toBe('CONFLICT');
+        // Whole row, updatedAt included: a 409 that still wrote would show
+        // up as a moved timestamp or a filled confirmedMapping.
+        await expect(jobRow(job.id)).resolves.toEqual(before);
+      },
+    );
+  });
+
+  // Every problem is a 422 MAPPING_INVALID, shape or semantics alike, because
+  // validateMapping does not tell them apart. The job stays where it was, so
+  // the user can correct the mapping and send it again.
+  describe('a mapping that does not fit the file', () => {
+    it('names the offending column, and leaves the job awaiting a mapping', async () => {
+      const job = await seedAwaitingJob();
+
+      const res = await postMapping(job.id, {
+        headerRowIndex: 0,
+        mappings: [
+          { sourceColumn: 'e-mail', targetField: 'email', confidence: 1 },
+        ],
+      });
+
+      expect(res.status).toBe(422);
+      expect(res.body).toEqual({
+        error: {
+          code: 'MAPPING_INVALID',
+          message: 'Mapping does not fit the file',
+          details: [
+            {
+              field: 'mappings.0.sourceColumn',
+              message: '"e-mail" is not a column in the file',
+            },
+          ],
+        },
+      });
+
+      const row = await jobRow(job.id);
+      expect(row.status).toBe('AWAITING_MAPPING');
+      expect(row.confirmedMapping).toBeNull();
+    });
+
+    it('answers an empty body with 422, not the ValidationPipe 400', async () => {
+      // The body is typed `unknown`, so the global ValidationPipe has no class
+      // to check and validateMapping is the only validator. A DTO class here
+      // would turn this into a VALIDATION_FAILED 400.
+      const job = await seedAwaitingJob();
+
+      const res = await postMapping(job.id, {});
+
+      expect(res.status).toBe(422);
+      expect((res.body as ErrorBody).error.code).toBe('MAPPING_INVALID');
+      expect((await jobRow(job.id)).status).toBe('AWAITING_MAPPING');
+    });
+
+    it('rejects a target field outside the catalogue with 422', async () => {
+      const job = await seedAwaitingJob();
+
+      const res = await postMapping(job.id, {
+        headerRowIndex: 0,
+        mappings: [
+          { sourceColumn: 'email', targetField: 'email', confidence: 1 },
+          { sourceColumn: 'name', targetField: 'surname', confidence: 1 },
+        ],
+      });
+
+      expect(res.status).toBe(422);
+      expect((res.body as ErrorBody).error.code).toBe('MAPPING_INVALID');
+      expect(fieldErrors(res).map((issue) => issue.field)).toEqual([
+        'mappings.1.targetField',
+      ]);
+      expect((await jobRow(job.id)).status).toBe('AWAITING_MAPPING');
+    });
+  });
+
+  describe('a mapping that fits', () => {
+    it('answers 202 with the job, now PENDING_IMPORT', async () => {
+      const job = await seedAwaitingJob();
+
+      const res = await postMapping(job.id, VALID);
+
+      expect(res.status).toBe(202);
+      // The same DTO GET returns, so the client sees the new status without
+      // a second request. confirmedMapping is not in it.
+      expect(res.body).toEqual({
+        id: job.id,
+        status: 'PENDING_IMPORT',
+        headerRowIndex: 0,
+        sampleRows: [
+          ['ada@example.com', 'Ada Lovelace', 'Analytical Engines'],
+          ['grace@example.com', 'Grace Hopper', 'UNIVAC'],
+        ],
+        proposedMapping: PROPOSED,
+        inferenceSource: 'HEURISTIC',
+        failureReason: null,
+        totalRows: 2,
+        importedRows: 0,
+        failedRows: 0,
+      });
+    });
+
+    it('stores the parsed mapping in the { mappings } wrapper, extras stripped', async () => {
+      const job = await seedAwaitingJob();
+
+      const res = await postMapping(job.id, {
+        ...VALID,
+        extra: 'top-level',
+        mappings: [
+          { ...PROPOSED[0], note: 'nested' },
+          PROPOSED[1],
+          // A correction: the user overrides the proposal for this column.
+          { sourceColumn: 'company', targetField: '__ignore__', confidence: 1 },
+        ],
+      });
+      expect(res.status).toBe(202);
+
+      const row = await jobRow(job.id);
+      expect(row.status).toBe('PENDING_IMPORT');
+      // toEqual on the whole column: `extra`, `note` and headerRowIndex must
+      // all be absent. Only what zod parsed reaches the DB.
+      expect(row.confirmedMapping).toEqual({
+        mappings: [
+          PROPOSED[0],
+          PROPOSED[1],
+          { sourceColumn: 'company', targetField: '__ignore__', confidence: 1 },
+        ],
+      });
+      // The proposal is history, not overwritten by the confirmation.
+      expect(row.proposedMapping).toEqual({ mappings: PROPOSED });
+    });
+
+    it('answers a second, identical confirm with 409', async () => {
+      // No replay: once the job has left AWAITING_MAPPING, any POST is a
+      // conflict. The client polls GET to learn what happened.
+      const job = await seedAwaitingJob();
+
+      const first = await postMapping(job.id, VALID);
+      const second = await postMapping(job.id, VALID);
+
+      expect(first.status).toBe(202);
+      expect(second.status).toBe(409);
+      expect((second.body as ErrorBody).error.code).toBe('CONFLICT');
+      expect((await jobRow(job.id)).status).toBe('PENDING_IMPORT');
+    });
+
+    it('lets exactly one of two concurrent confirms through', async () => {
+      // Both requests can pass the status read before either writes. Only the
+      // conditional update (WHERE status = AWAITING_MAPPING) stops the second;
+      // a read-then-write would answer 202 twice.
+      const job = await seedAwaitingJob();
+
+      const results = await Promise.all([
+        postMapping(job.id, VALID),
+        postMapping(job.id, VALID),
+      ]);
+
+      expect(results.map((res) => res.status).sort()).toEqual([202, 409]);
+      const loser = results.find((res) => res.status === 409);
+      expect((loser?.body as ErrorBody).error.code).toBe('CONFLICT');
+      expect((await jobRow(job.id)).status).toBe('PENDING_IMPORT');
+    });
+  });
+});
+
+function jobRow(id: string) {
+  return testDb().importJob.findUniqueOrThrow({ where: { id } });
+}

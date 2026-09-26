@@ -19,6 +19,11 @@ const EXPECTED: { code: ErrorCode; status: number; message: string }[] = [
   { code: 'NOT_FOUND', status: 404, message: 'Not found' },
   { code: 'CONFLICT', status: 409, message: 'Conflict' },
   { code: 'PAYLOAD_TOO_LARGE', status: 413, message: 'Payload too large' },
+  {
+    code: 'MAPPING_INVALID',
+    status: 422,
+    message: 'Mapping does not fit the file',
+  },
   { code: 'INTERNAL', status: 500, message: 'Internal server error' },
 ];
 

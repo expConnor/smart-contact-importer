@@ -15,6 +15,7 @@ import type { Upload } from '../test/builders/upload.builder';
 import { testDb } from '../test/db.fixture';
 import { WorkerService } from './worker.service';
 import type { CreateImportResponseDto } from '../imports/dto/create-import-response.dto';
+import type { ImportJobResponseDto } from '../imports/dto/import-job-response.dto';
 
 const USER_ID = '00000000-0000-4000-8000-000000000030';
 const KEY = 'key-cccccccc';
@@ -116,8 +117,8 @@ describe('tick', () => {
   });
 
   it('carries a mapped job to COMPLETED', async () => {
-    // Seeded, not confirmed through the API: PENDING_IMPORT is the state the
-    // mapping route will leave behind, and that route does not exist yet.
+    // Seeded, not confirmed through the API: this case is the import phase
+    // alone. The walk through the mapping route is the next test.
     const [job] = await seedJobs([
       aJob({ userId: USER_ID, status: 'PENDING_IMPORT' }),
     ]);
@@ -125,6 +126,36 @@ describe('tick', () => {
     await worker.tick();
 
     expect((await jobRow(job.id)).status).toBe('COMPLETED');
+  });
+
+  it('takes an upload through its own proposed mapping to COMPLETED', async () => {
+    const id = await upload(csvFixture('clean.csv'));
+
+    await worker.tick();
+
+    const analysed = await ctx
+      .http()
+      .get(`/v1/imports/${id}`)
+      .set('Cookie', cookie)
+      .expect(200);
+    const { headerRowIndex, proposedMapping } =
+      analysed.body as ImportJobResponseDto;
+
+    // Sent back untouched. The matcher and the route both run validateMapping's
+    // rules, so a proposal the route refuses is a bug in one of the two.
+    const confirmed = await ctx
+      .http()
+      .post(`/v1/imports/${id}/mapping`)
+      .set('Cookie', cookie)
+      .send({ headerRowIndex, mappings: proposedMapping });
+    expect(confirmed.status).toBe(202);
+    expect((confirmed.body as ImportJobResponseDto).status).toBe(
+      'PENDING_IMPORT',
+    );
+
+    await worker.tick();
+
+    expect((await jobRow(id)).status).toBe('COMPLETED');
   });
 
   it('fails the job when the work throws, and still resolves', async () => {
