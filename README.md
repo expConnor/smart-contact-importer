@@ -8,7 +8,7 @@ See [SPEC.md](SPEC.md) for scope.
 ## Requirements
 
 - Docker (Compose v2)
-- Node 22+
+- Node 22.9+ (the test scripts use `--env-file-if-exists`)
 
 ## Running
 
@@ -48,12 +48,21 @@ cp .env.example .env        # required: DATABASE_URL has no default
 npm run db:migrate          # apply migrations to the dev database
 npm run db:seed             # 1 user + 200 contacts; re-runnable, upserts
 npm run check               # format, lint, test, build
-npm run dev                 # http://localhost:3000
+npm run dev                 # http://localhost:3000, API + worker
 ```
 
 Unlike the root `.env`, this one is not optional — Prisma throws on a missing
 `DATABASE_URL` rather than falling back. If you changed `DB_PORT` at the root,
 change the port in `DATABASE_URL` to match.
+
+`npm run dev` also runs the background worker in the same process. It polls
+Postgres for queued import jobs. Set `WORKER_ENABLED=false` to serve HTTP only
+(then nothing processes uploads). Uploaded CSVs are stored in
+`backend/uploads/` (gitignored).
+
+`ANTHROPIC_API_KEY` is optional and empty by default. Column inference uses a
+deterministic heuristic without it. No LLM call is wired up yet, so today the
+heuristic always runs.
 
 Seeded login — dev-only, from [backend/prisma/seed.ts](backend/prisma/seed.ts):
 
@@ -61,14 +70,31 @@ Seeded login — dev-only, from [backend/prisma/seed.ts](backend/prisma/seed.ts)
 | --------------- | --------- |
 | `user@test.com` | `develop` |
 
+### API
+
+All routes sit under `/v1`. Everything except `auth/*` needs the auth cookie.
+
+| Route                          | Does                                               |
+| ------------------------------ | -------------------------------------------------- |
+| `POST /v1/auth/login`          | sets the httpOnly JWT cookie                       |
+| `POST /v1/auth/logout`         | clears it                                          |
+| `GET /v1/me`                   | the logged-in user                                 |
+| `GET /v1/contacts`             | cursor-paginated list; `status`, `company`, `sort` |
+| `POST /v1/imports`             | multipart CSV + `Idempotency-Key` header → job id  |
+| `GET /v1/imports/:id`          | job status, proposed mapping, samples              |
+| `POST /v1/imports/:id/mapping` | confirm the mapping, start the import              |
+
+Work in progress: the import step is a stub. Confirming a mapping finishes the
+job, but no contacts are written yet.
+
 ### Tests
 
 `npm run check` runs both layers. They differ in what they need:
 
-| Script          | Needs the container? | Covers                                  |
-| --------------- | -------------------- | --------------------------------------- |
-| `npm run test:unit` | no               | pure functions — no Nest, no database   |
-| `npm run test:e2e`  | **yes**          | the real app over HTTP, real Postgres   |
+| Script              | Needs the container? | Covers                                |
+| ------------------- | -------------------- | ------------------------------------- |
+| `npm run test:unit` | no                   | pure functions — no Nest, no database |
+| `npm run test:e2e`  | **yes**              | the real app over HTTP, real Postgres |
 
 So `docker compose up -d` before `npm run check`, or the e2e half fails.
 
@@ -92,13 +118,8 @@ echo 'DATABASE_URL=postgresql://app:app@localhost:5433/smart_contact_importer_te
 
 Without it, `npm run test:e2e` fails with `ECONNREFUSED` on the default port.
 
-`ANTHROPIC_API_KEY` is optional and empty by default; column inference falls
-back to a deterministic heuristic without it.
-
 ## Fixtures
 
 Sample CSVs for the import path live in [fixtures/](fixtures/) — one file per
 export format, each breaking something different. See
 [fixtures/README.md](fixtures/README.md).
-
-<!-- TODO: frontend run instructions (frontend slice) -->
