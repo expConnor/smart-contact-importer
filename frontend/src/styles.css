@@ -227,3 +227,70 @@ a:focus-visible {
   font-size: 15px;
   font-weight: 600;
 }
+
+/* ─── Contacts table ─────────────────────────────────────────────────────── */
+
+/* Wide tables scroll sideways inside the panel; the page itself never does. */
+.table-scroll {
+  overflow-x: auto;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.table th,
+.table td {
+  height: 34px;
+  padding: 0 12px;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.table th {
+  font: 11px var(--mono);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+  font-weight: 400;
+  border-bottom: 1px solid var(--border);
+}
+
+.table td {
+  border-top: 1px solid var(--border);
+}
+
+.table tbody tr:hover {
+  background: var(--page);
+}
+
+.status::before {
+  content: '';
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  margin-right: 6px;
+  border-radius: 50%;
+  vertical-align: middle;
+  background: var(--muted);
+}
+
+.status[data-status='active']::before {
+  background: var(--green);
+}
+
+.status[data-status='bounced']::before {
+  background: var(--red);
+}
+
+.status[data-status='lead']::before {
+  background: var(--blue);
+}
+
+.table-footer {
+  padding: 12px;
+  border-top: 1px solid var(--border);
+  font-family: var(--mono);
+  color: var(--muted);
+}

@@ -1,5 +1,19 @@
 export type User = { id: string; email: string };
 
+export type Contact = {
+  id: string;
+  email: string;
+  name: string;
+  company: string;
+  jobTitle: string;
+  phone: string;
+  status: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type ContactPage = { items: Contact[]; nextCursor: string | null };
+
 export class ApiError extends Error {
   readonly status: number;
   readonly code: string;
@@ -83,4 +97,9 @@ export function login(credentials: {
 
 export function logout(): Promise<void> {
   return request<void>('POST', '/auth/logout');
+}
+
+// No params: the API defaults to 50 rows, newest first.
+export function listContacts(): Promise<ContactPage> {
+  return request<ContactPage>('GET', '/contacts');
 }
