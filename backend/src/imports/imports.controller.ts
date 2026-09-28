@@ -19,6 +19,7 @@ import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { IdempotencyKey } from './decorators/idempotency-key.decorator';
 import { CreateImportResponseDto } from './dto/create-import-response.dto';
 import { ImportJobResponseDto } from './dto/import-job-response.dto';
+import { ListImportsResponseDto } from './dto/list-imports-response.dto';
 import { CreateImportResult } from './types';
 import { type Response } from 'express';
 
@@ -44,6 +45,13 @@ export class ImportsController {
     res.statusCode = importResult.replayed ? 200 : 201;
 
     return { id: importResult.id };
+  }
+
+  @Get('/')
+  async findAll(
+    @CurrentUser() userId: string,
+  ): Promise<ListImportsResponseDto> {
+    return this.importsService.findAll(userId);
   }
 
   @Get(':id')

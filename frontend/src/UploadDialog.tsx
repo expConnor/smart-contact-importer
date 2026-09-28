@@ -1,4 +1,4 @@
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useRef, useState } from 'react';
 import type { ChangeEvent, DragEvent } from 'react';
 import { useNavigate } from 'react-router';
@@ -11,6 +11,7 @@ type Picked = { file: File; key: string };
 export function UploadDialog({ onClose }: { onClose: () => void }) {
   const dialogRef = useRef<HTMLDialogElement>(null);
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [picked, setPicked] = useState<Picked | null>(null);
   const [missing, setMissing] = useState(false);
   const [dragging, setDragging] = useState(false);
@@ -25,6 +26,8 @@ export function UploadDialog({ onClose }: { onClose: () => void }) {
   const mutation = useMutation({
     mutationFn: ({ file, key }: Picked) => createImport(file, key),
     onSuccess: ({ id }) => {
+      // An idle sidebar list does not poll, so it would never see the new job.
+      void queryClient.invalidateQueries({ queryKey: ['imports'] });
       onClose();
       navigate(`/imports/${id}`);
     },

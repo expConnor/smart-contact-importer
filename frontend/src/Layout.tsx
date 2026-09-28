@@ -5,6 +5,7 @@ import { logout } from './api';
 import type { User } from './api';
 import { crumbs } from './crumbs';
 import { endSession } from './session';
+import { Sidebar } from './Sidebar';
 import { UploadDialog } from './UploadDialog';
 
 export function Layout({ user }: { user: User }) {
@@ -57,9 +58,12 @@ export function Layout({ user }: { user: User }) {
           </div>
         </div>
       </header>
-      <main className="page">
-        <Outlet />
-      </main>
+      <div className="shell">
+        <Sidebar />
+        <main className="page">
+          <Outlet />
+        </main>
+      </div>
       {uploadOpen && <UploadDialog onClose={() => setUploadOpen(false)} />}
     </div>
   );

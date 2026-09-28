@@ -1,13 +1,8 @@
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useEffect } from 'react';
 import { useParams } from 'react-router';
-import { ApiError, getImport } from '../api';
-import { isPolling, STATUS_LINE } from '../job';
-
-function errorText(error: Error): string {
-  return error instanceof ApiError
-    ? `${error.message} (${error.status})`
-    : error.message;
-}
+import { errorText, getImport } from '../api';
+import { isPolling, shortId, STATUS_LINE } from '../job';
 
 export function JobPage() {
   const { id = '' } = useParams();
@@ -20,6 +15,17 @@ export function JobPage() {
     refetchInterval: (query) =>
       isPolling(query.state.data?.status) ? 250 : false,
   });
+
+  // The sidebar list only polls while a job it already knows is moving. A
+  // change it can't see (a job uploaded or confirmed with curl, or in another
+  // tab) would leave its badge stale, so each new status here refetches it.
+  const queryClient = useQueryClient();
+  const seenStatus = job.data?.status;
+  useEffect(() => {
+    if (seenStatus) {
+      void queryClient.invalidateQueries({ queryKey: ['imports'] });
+    }
+  }, [id, seenStatus, queryClient]);
 
   // Bad id (400) or unknown / someone else's job (404). A 401 goes to /login.
   if (job.error && !job.data) {
@@ -42,7 +48,7 @@ export function JobPage() {
     <div className="job">
       <div className="panel job-panel">
         <div className="job-head">
-          <h1 className="mono job-title">Import {id.slice(0, 8)}</h1>
+          <h1 className="mono job-title">Import {shortId(id)}</h1>
           <span className="tag" data-status={status}>
             {status}
           </span>

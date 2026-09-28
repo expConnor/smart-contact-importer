@@ -11,6 +11,7 @@ import {
 import { validateMapping } from './analysis/validate';
 import type { CreateImportResult } from './types';
 import { ImportJobResponseDto } from './dto/import-job-response.dto';
+import { ListImportsResponseDto } from './dto/list-imports-response.dto';
 import { toImportJobResponseDto } from './import-job.mapper';
 
 type StoredHeaders = { headers: string[] };
@@ -40,6 +41,18 @@ export class ImportsService {
         await this.storage.discard(file.filename);
       }
     }
+  }
+
+  // Only the columns the sidebar shows: the select is the DTO. id breaks
+  // createdAt ties so the order holds steady between polls.
+  async findAll(userId: string): Promise<ListImportsResponseDto> {
+    const items = await this.prisma.importJob.findMany({
+      where: { userId },
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+      take: 100,
+      select: { id: true, status: true, originalFilename: true },
+    });
+    return { items };
   }
 
   async findOne(userId: string, id: string): Promise<ImportJobResponseDto> {

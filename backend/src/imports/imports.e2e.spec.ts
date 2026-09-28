@@ -351,6 +351,95 @@ describe('POST /v1/imports', () => {
   });
 });
 
+describe('GET /v1/imports', () => {
+  let ctx: TestApp;
+  let cookie: string;
+
+  beforeAll(async () => {
+    ctx = await createTestApp();
+    cookie = cookieFor(ctx, USER_ID);
+  });
+
+  afterAll(async () => {
+    await ctx.close();
+  });
+
+  beforeEach(async () => {
+    await seedUser({ id: USER_ID });
+    await seedUser({ id: OTHER_USER_ID });
+  });
+
+  function listImports() {
+    return ctx.http().get('/v1/imports').set('Cookie', cookie);
+  }
+
+  it('rejects a request with no cookie', async () => {
+    const res = await ctx.http().get('/v1/imports');
+
+    expect(res.status).toBe(401);
+    expect((res.body as ErrorBody).error.code).toBe('UNAUTHORIZED');
+  });
+
+  it('answers a user with no jobs with an empty list', async () => {
+    const res = await listImports();
+
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({ items: [] });
+  });
+
+  it('lists the newest job first, each with only id, status and file name', async () => {
+    // aJob spaces createdAt one second apart, in call order.
+    const [oldest, middle, newest] = await seedJobs([
+      aJob({ userId: USER_ID, status: 'COMPLETED' }),
+      aJob({ userId: USER_ID, status: 'AWAITING_MAPPING' }),
+      aJob({ userId: USER_ID }),
+    ]);
+
+    const res = await listImports();
+
+    // toEqual, not toMatchObject: a key beyond these three (sampleRows, the
+    // lease, storagePath) fails here.
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({
+      items: [newest, middle, oldest].map((job) => ({
+        id: job.id,
+        status: job.status,
+        originalFilename: job.originalFilename,
+      })),
+    });
+  });
+
+  it("leaves out another user's jobs", async () => {
+    const [mine] = await seedJobs([
+      aJob({ userId: USER_ID }),
+      aJob({ userId: OTHER_USER_ID }),
+    ]);
+
+    const res = await listImports();
+
+    expect((res.body as { items: { id: string }[] }).items).toEqual([
+      expect.objectContaining({ id: mine.id }),
+    ]);
+  });
+
+  it('returns the newest 100 and drops the oldest', async () => {
+    const jobs = await seedJobs(
+      Array.from({ length: 101 }, () => aJob({ userId: USER_ID })),
+    );
+    const oldest = jobs[0];
+    const newest = jobs[100];
+
+    const res = await listImports();
+    const ids = (res.body as { items: { id: string }[] }).items.map(
+      (item) => item.id,
+    );
+
+    expect(ids).toHaveLength(100);
+    expect(ids[0]).toBe(newest.id);
+    expect(ids).not.toContain(oldest.id);
+  });
+});
+
 describe('GET /v1/imports/:id', () => {
   let ctx: TestApp;
   let cookie: string;

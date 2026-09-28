@@ -63,9 +63,16 @@ export class WorkerService {
     if (!job) return;
 
     try {
-      const outcome = await this.withHeartbeat(job.id, (signal) =>
-        handler.run(job, signal),
-      );
+      const outcome = await this.withHeartbeat(job.id, async (signal) => {
+        // Demo only: a small CSV is analysed in milliseconds, so a 250 ms
+        // poll never sees ANALYZING. Holding the job shows the state in the UI.
+        if (env.WORKER_DEMO_DELAY_MS > 0) {
+          await new Promise((resolve) =>
+            setTimeout(resolve, env.WORKER_DEMO_DELAY_MS),
+          );
+        }
+        return handler.run(job, signal);
+      });
       const settled = await settle(job.id, outcome);
       if (!settled) this.leaseLost(phase, job.id, 'settle');
     } catch (error) {

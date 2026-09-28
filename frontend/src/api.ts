@@ -32,6 +32,12 @@ export class ApiError extends Error {
   }
 }
 
+export function errorText(error: Error): string {
+  return error instanceof ApiError
+    ? `${error.message} (${error.status})`
+    : error.message;
+}
+
 type ErrorEnvelope = {
   error?: { code?: unknown; message?: unknown; details?: unknown };
 };
@@ -160,4 +166,15 @@ export function createImport(file: File, key: string): Promise<{ id: string }> {
 
 export function getImport(id: string): Promise<ImportJob> {
   return request<ImportJob>('GET', `/imports/${encodeURIComponent(id)}`);
+}
+
+export type ImportSummary = {
+  id: string;
+  status: ImportStatus;
+  originalFilename: string;
+};
+
+// The caller's newest 100 jobs, newest first.
+export function listImports(): Promise<{ items: ImportSummary[] }> {
+  return request<{ items: ImportSummary[] }>('GET', '/imports');
 }
