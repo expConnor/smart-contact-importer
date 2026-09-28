@@ -19,7 +19,7 @@ export function Layout({ user }: { user: User }) {
   });
 
   return (
-    <>
+    <div className="app">
       <header className="header">
         <div className="header-inner">
           <nav className="crumbs">
@@ -37,7 +37,7 @@ export function Layout({ user }: { user: User }) {
           <div className="header-actions">
             <span className="mono">{user.email}</span>
             <button
-              className="button"
+              className="button button-ghost"
               type="button"
               onClick={() => logoutMutation.mutate()}
               disabled={logoutMutation.isPending}
@@ -53,6 +53,6 @@ export function Layout({ user }: { user: User }) {
       <main className="page">
         <Outlet />
       </main>
-    </>
+    </div>
   );
 }

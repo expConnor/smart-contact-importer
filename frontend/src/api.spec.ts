@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { ApiError, parseError } from './api';
+import { ApiError, contactsPath, parseError } from './api';
+import type { ContactParams } from './api';
 
 describe('parseError', () => {
   it('reads code and message from the error envelope', () => {
@@ -46,4 +47,38 @@ describe('parseError', () => {
       expect(error.message).toBe(statusText);
     },
   );
+});
+
+describe('contactsPath', () => {
+  const defaults: ContactParams = {
+    status: '',
+    company: '',
+    sort: '-createdAt',
+    limit: 50,
+  };
+
+  // Empty filters are left out: the API rejects `status=`.
+  it('always sends sort and limit, and nothing else by default', () => {
+    expect(contactsPath(defaults)).toBe('/contacts?sort=-createdAt&limit=50');
+  });
+
+  it('adds status and a trimmed, encoded company', () => {
+    expect(
+      contactsPath({ ...defaults, status: 'active', company: '  Acme GmbH ' }),
+    ).toBe(
+      '/contacts?sort=-createdAt&limit=50&status=active&company=Acme+GmbH',
+    );
+  });
+
+  it('leaves out a company that is only spaces', () => {
+    expect(contactsPath({ ...defaults, company: '   ' })).toBe(
+      '/contacts?sort=-createdAt&limit=50',
+    );
+  });
+
+  it('puts the cursor last', () => {
+    expect(contactsPath({ ...defaults, status: 'lead' }, 'abc')).toBe(
+      '/contacts?sort=-createdAt&limit=50&status=lead&cursor=abc',
+    );
+  });
 });

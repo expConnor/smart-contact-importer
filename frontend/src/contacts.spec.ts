@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { formatCell, formatDate, rowCount } from './contacts';
+import { formatCell, formatDate, nextSort, rowCount } from './contacts';
 
 describe('formatCell', () => {
   // A blank cell looks like a render bug; a dash says "no value".
@@ -38,5 +38,24 @@ describe('rowCount', () => {
 
   it('uses the plural for zero rows', () => {
     expect(rowCount(0, false)).toBe('0 rows · end of list');
+  });
+});
+
+describe('nextSort', () => {
+  it('flips the current column from ascending to descending', () => {
+    expect(nextSort('name', 'name')).toBe('-name');
+  });
+
+  it('flips the current column from descending to ascending', () => {
+    expect(nextSort('-name', 'name')).toBe('name');
+  });
+
+  it('starts a new column ascending', () => {
+    expect(nextSort('-createdAt', 'company')).toBe('company');
+  });
+
+  // Newest first is what you want when you switch to Created.
+  it('starts Created descending', () => {
+    expect(nextSort('name', 'createdAt')).toBe('-createdAt');
   });
 });

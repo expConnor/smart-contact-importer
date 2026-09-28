@@ -99,7 +99,32 @@ export function logout(): Promise<void> {
   return request<void>('POST', '/auth/logout');
 }
 
-// No params: the API defaults to 50 rows, newest first.
-export function listContacts(): Promise<ContactPage> {
-  return request<ContactPage>('GET', '/contacts');
+export type ContactSort =
+  'name' | '-name' | 'company' | '-company' | 'createdAt' | '-createdAt';
+
+export type ContactParams = {
+  status: string;
+  company: string;
+  sort: ContactSort;
+  limit: number;
+};
+
+// Empty filters are left out: the API rejects `status=`.
+export function contactsPath(params: ContactParams, cursor?: string): string {
+  const query = new URLSearchParams({
+    sort: params.sort,
+    limit: String(params.limit),
+  });
+  const company = params.company.trim();
+  if (params.status !== '') query.set('status', params.status);
+  if (company !== '') query.set('company', company);
+  if (cursor !== undefined) query.set('cursor', cursor);
+  return `/contacts?${query}`;
+}
+
+export function listContacts(
+  params: ContactParams,
+  cursor: string | null,
+): Promise<ContactPage> {
+  return request<ContactPage>('GET', contactsPath(params, cursor ?? undefined));
 }

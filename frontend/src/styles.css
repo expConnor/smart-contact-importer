@@ -8,6 +8,9 @@
   --ink: #0a0a0a;
   --muted: #6b6b6b;
   --border: #ebebeb;
+  --subtle: #fafafa;
+  --hover: #f4f4f5;
+  --shadow: 0 1px 2px rgb(0 0 0 / 0.04);
 
   /* Semantic: text, dots, stripes and 8 % tints only. */
   --green: #2f855a;
@@ -18,7 +21,7 @@
   --sans: 'Geist Variable', system-ui, sans-serif;
   --mono: 'Geist Mono Variable', ui-monospace, monospace;
 
-  --control: 28px;
+  --control: 32px;
   --radius: 6px;
 }
 
@@ -29,6 +32,9 @@
     --ink: #ededed;
     --muted: #a1a1a1;
     --border: #1f1f1f;
+    --subtle: #161616;
+    --hover: #1a1a1a;
+    --shadow: none;
 
     --green: #4fb37f;
     --red: #e5675f;
@@ -84,7 +90,8 @@ p {
 .panel {
   background: var(--panel);
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: 10px;
+  box-shadow: var(--shadow);
 }
 
 /* ─── Controls ───────────────────────────────────────────────────────────── */
@@ -120,6 +127,11 @@ p {
   opacity: 0.85;
 }
 
+.button-ghost {
+  border-color: transparent;
+  background: transparent;
+}
+
 .button:disabled {
   opacity: 0.5;
   cursor: default;
@@ -149,6 +161,15 @@ a:focus-visible {
   gap: 4px;
 }
 
+/* ─── Shell ──────────────────────────────────────────────────────────────── */
+
+/* Screen-high column: header on top, the page takes the rest. */
+.app {
+  display: flex;
+  flex-direction: column;
+  height: 100dvh;
+}
+
 /* ─── Header ─────────────────────────────────────────────────────────────── */
 
 .header {
@@ -158,9 +179,14 @@ a:focus-visible {
 
 .header-inner,
 .page {
-  max-width: 1040px;
-  margin: 0 auto;
-  padding: 0 16px;
+  padding: 0 24px;
+}
+
+@media (max-width: 640px) {
+  .header-inner,
+  .page {
+    padding: 0 16px;
+  }
 }
 
 .header-inner {
@@ -201,6 +227,10 @@ a:focus-visible {
 }
 
 .page {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
   padding-top: 24px;
   padding-bottom: 24px;
 }
@@ -228,41 +258,175 @@ a:focus-visible {
   font-weight: 600;
 }
 
-/* ─── Contacts table ─────────────────────────────────────────────────────── */
+/* ─── Contacts ───────────────────────────────────────────────────────────── */
 
-/* Wide tables scroll sideways inside the panel; the page itself never does. */
-.table-scroll {
-  overflow-x: auto;
+/* Fills the page even with 0 rows; only the table box scrolls. */
+.contacts {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
 }
 
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 16px;
+  padding: 12px;
+  border-bottom: 1px solid var(--border);
+}
+
+.toolbar-field {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.toolbar-field .input {
+  width: auto;
+  font-size: 13px;
+}
+
+.toolbar .toolbar-company {
+  width: 220px;
+}
+
+.toolbar-end {
+  margin-left: auto;
+}
+
+/* Scrolls both ways. Column flex so the empty / error message can take the
+   space under the header and centre in it. */
+.table-scroll {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
+
+/* `separate`, not `collapse`: a collapsed border stays behind when the
+   header sticks, a cell's own border moves with it. */
 .table {
+  flex: none;
   width: 100%;
-  border-collapse: collapse;
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+.table-stale tbody {
+  opacity: 0.5;
 }
 
 .table th,
 .table td {
-  height: 34px;
   padding: 0 12px;
   text-align: left;
   white-space: nowrap;
-}
-
-.table th {
-  font: 11px var(--mono);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  color: var(--muted);
-  font-weight: 400;
   border-bottom: 1px solid var(--border);
 }
 
-.table td {
-  border-top: 1px solid var(--border);
+.table th:first-child,
+.table td:first-child {
+  padding-left: 16px;
 }
 
-.table tbody tr:hover {
-  background: var(--page);
+.table th:last-child,
+.table td:last-child {
+  padding-right: 16px;
+}
+
+.table th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  height: 36px;
+  background: var(--subtle);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--muted);
+}
+
+.table th.sorted {
+  color: var(--ink);
+}
+
+.table td {
+  height: 40px;
+  background: var(--panel);
+}
+
+/* Columns alternate in weight so the eye can follow them: Name strong,
+   Company and Status in ink, the rest muted; mono values a size smaller. */
+.table td[data-column='name'] {
+  font-weight: 500;
+}
+
+.table td[data-column='email'],
+.table td[data-column='jobTitle'],
+.table td[data-column='phone'],
+.table td[data-column='createdAt'] {
+  color: var(--muted);
+}
+
+.table td .mono {
+  font-size: 12px;
+}
+
+/* Name stays put when the table scrolls sideways. */
+.table th:first-child,
+.table td:first-child {
+  position: sticky;
+  left: 0;
+  border-right: 1px solid var(--border);
+}
+
+.table td:first-child {
+  z-index: 1;
+}
+
+/* Sticks both ways, so it sits above both the header row and the Name column. */
+.table th:first-child {
+  z-index: 3;
+}
+
+/* On the cells, not the row: the pinned cell has its own background. */
+.table tbody tr:hover td {
+  background: var(--hover);
+}
+
+.sort {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+.sort:focus-visible {
+  outline: 2px solid var(--blue);
+  outline-offset: -2px;
+}
+
+.faint {
+  opacity: 0.4;
+}
+
+.table-message {
+  flex: 1;
+  display: grid;
+  place-items: center;
+  padding: 48px 16px;
 }
 
 .status::before {
@@ -289,8 +453,22 @@ a:focus-visible {
 }
 
 .table-footer {
-  padding: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  height: 44px;
+  padding: 0 16px;
   border-top: 1px solid var(--border);
-  font-family: var(--mono);
+}
+
+.request-line {
+  padding: 6px 16px;
+  border-top: 1px solid var(--border);
+  background: var(--subtle);
+  font: 11px var(--mono);
   color: var(--muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
