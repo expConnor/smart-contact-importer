@@ -1,0 +1,229 @@
+/* ─── Tokens ─────────────────────────────────────────────────────────────── */
+
+:root {
+  color-scheme: light dark;
+
+  --page: #fafafa;
+  --panel: #ffffff;
+  --ink: #0a0a0a;
+  --muted: #6b6b6b;
+  --border: #ebebeb;
+
+  /* Semantic: text, dots, stripes and 8 % tints only. */
+  --green: #2f855a;
+  --red: #c2413b;
+  --amber: #b7791f;
+  --blue: #3b6fb6;
+
+  --sans: 'Geist Variable', system-ui, sans-serif;
+  --mono: 'Geist Mono Variable', ui-monospace, monospace;
+
+  --control: 28px;
+  --radius: 6px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --page: #0a0a0a;
+    --panel: #111111;
+    --ink: #ededed;
+    --muted: #a1a1a1;
+    --border: #1f1f1f;
+
+    --green: #4fb37f;
+    --red: #e5675f;
+    --amber: #d9a441;
+    --blue: #6b9be0;
+  }
+}
+
+/* ─── Base ───────────────────────────────────────────────────────────────── */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--page);
+  color: var(--ink);
+  font: 13px/1.5 var(--sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+a {
+  color: inherit;
+}
+
+h1,
+p {
+  margin: 0;
+}
+
+.mono {
+  font-family: var(--mono);
+}
+
+.muted {
+  color: var(--muted);
+}
+
+.label {
+  font: 11px var(--mono);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+}
+
+.error {
+  color: var(--red);
+}
+
+.panel {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+/* ─── Controls ───────────────────────────────────────────────────────────── */
+
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: var(--control);
+  padding: 0 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--panel);
+  color: var(--ink);
+  font: inherit;
+  font-weight: 500;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.button:hover {
+  border-color: var(--muted);
+}
+
+.button-primary {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--page);
+}
+
+.button-primary:hover {
+  border-color: var(--ink);
+  opacity: 0.85;
+}
+
+.button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.input {
+  width: 100%;
+  height: var(--control);
+  padding: 0 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--page);
+  color: var(--ink);
+  font: inherit;
+}
+
+.button:focus-visible,
+.input:focus-visible,
+a:focus-visible {
+  outline: 2px solid var(--blue);
+  outline-offset: 2px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+/* ─── Header ─────────────────────────────────────────────────────────────── */
+
+.header {
+  border-bottom: 1px solid var(--border);
+  background: var(--panel);
+}
+
+.header-inner,
+.page {
+  max-width: 1040px;
+  margin: 0 auto;
+  padding: 0 16px;
+}
+
+.header-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  height: 48px;
+}
+
+.crumbs {
+  font-family: var(--mono);
+}
+
+.crumbs a {
+  color: var(--muted);
+  text-decoration: none;
+}
+
+.crumbs a:hover {
+  color: var(--ink);
+}
+
+.crumb-sep {
+  margin: 0 6px;
+  color: var(--muted);
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.header-actions .mono {
+  margin-right: 4px;
+  color: var(--muted);
+}
+
+.page {
+  padding-top: 24px;
+  padding-bottom: 24px;
+}
+
+/* ─── Login ──────────────────────────────────────────────────────────────── */
+
+.login {
+  display: grid;
+  place-items: center;
+  min-height: 100vh;
+  padding: 16px;
+}
+
+.login-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+  max-width: 320px;
+  padding: 24px;
+}
+
+.login-title {
+  font-size: 15px;
+  font-weight: 600;
+}

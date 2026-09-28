@@ -118,6 +118,21 @@ echo 'DATABASE_URL=postgresql://app:app@localhost:5433/smart_contact_importer_te
 
 Without it, `npm run test:e2e` fails with `ECONNREFUSED` on the default port.
 
+## Frontend
+
+```bash
+cd frontend
+npm install
+npm run dev                 # http://localhost:5173, needs the backend on :3000
+npm run check               # format, lint, test, build
+```
+
+Vite proxies `/v1` to `http://localhost:3000`, so the browser sees one origin
+and the auth cookie works without CORS. Log in with the seeded user above.
+
+`npm run check` needs nothing running: the tests cover pure helpers only
+(error parsing, breadcrumb). The login flow is checked in the browser.
+
 ## Fixtures
 
 Sample CSVs for the import path live in [fixtures/](fixtures/) — one file per
