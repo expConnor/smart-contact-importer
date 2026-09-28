@@ -6,10 +6,6 @@ describe('crumbs', () => {
     expect(crumbs('/contacts')).toEqual(['contacts']);
   });
 
-  it('shows import under contacts on the upload page', () => {
-    expect(crumbs('/imports/new')).toEqual(['contacts', 'import']);
-  });
-
   it('shows the first 8 characters of the job id', () => {
     expect(crumbs('/imports/0199f1c2-aaaa-7bbb-8ccc-dddddddddddd')).toEqual([
       'contacts',

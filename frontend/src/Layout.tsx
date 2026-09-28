@@ -1,14 +1,17 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useState } from 'react';
 import { Link, Outlet, useLocation, useNavigate } from 'react-router';
 import { logout } from './api';
 import type { User } from './api';
 import { crumbs } from './crumbs';
 import { endSession } from './session';
+import { UploadDialog } from './UploadDialog';
 
 export function Layout({ user }: { user: User }) {
   const { pathname } = useLocation();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const [uploadOpen, setUploadOpen] = useState(false);
 
   const logoutMutation = useMutation({
     mutationFn: logout,
@@ -44,15 +47,20 @@ export function Layout({ user }: { user: User }) {
             >
               Log out
             </button>
-            <Link className="button button-primary" to="/imports/new">
+            <button
+              className="button button-primary"
+              type="button"
+              onClick={() => setUploadOpen(true)}
+            >
               Import CSV
-            </Link>
+            </button>
           </div>
         </div>
       </header>
       <main className="page">
         <Outlet />
       </main>
+      {uploadOpen && <UploadDialog onClose={() => setUploadOpen(false)} />}
     </div>
   );
 }

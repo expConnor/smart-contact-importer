@@ -3,7 +3,6 @@ import { Layout } from './Layout';
 import { ContactsPage } from './pages/ContactsPage';
 import { JobPage } from './pages/JobPage';
 import { LoginPage } from './pages/LoginPage';
-import { UploadPage } from './pages/UploadPage';
 import { useMe } from './session';
 
 export default function App() {
@@ -24,7 +23,6 @@ export default function App() {
         }
       >
         <Route path="/contacts" element={<ContactsPage />} />
-        <Route path="/imports/new" element={<UploadPage />} />
         <Route path="/imports/:id" element={<JobPage />} />
       </Route>
       <Route path="*" element={<Navigate to="/contacts" replace />} />

@@ -52,16 +52,24 @@ export function parseError(
   return new ApiError(status, error.code, message, error.details);
 }
 
+// FormData goes as is: the browser sets the multipart Content-Type with its
+// boundary. Anything else is sent as JSON.
 async function request<T>(
   method: string,
   path: string,
   body?: unknown,
+  headers?: Record<string, string>,
 ): Promise<T> {
+  const isForm = body instanceof FormData;
   const res = await fetch(`/v1${path}`, {
     method,
-    headers:
-      body === undefined ? undefined : { 'Content-Type': 'application/json' },
-    body: body === undefined ? undefined : JSON.stringify(body),
+    headers: {
+      ...(body === undefined || isForm
+        ? {}
+        : { 'Content-Type': 'application/json' }),
+      ...headers,
+    },
+    body: isForm ? body : body === undefined ? undefined : JSON.stringify(body),
   });
 
   if (res.status === 204) return undefined as T;
@@ -127,4 +135,29 @@ export function listContacts(
   cursor: string | null,
 ): Promise<ContactPage> {
   return request<ContactPage>('GET', contactsPath(params, cursor ?? undefined));
+}
+
+export type ImportStatus =
+  | 'PENDING_ANALYSIS'
+  | 'ANALYZING'
+  | 'AWAITING_MAPPING'
+  | 'PENDING_IMPORT'
+  | 'IMPORTING'
+  | 'COMPLETED'
+  | 'FAILED';
+
+// Only the fields the UI reads today.
+export type ImportJob = { id: string; status: ImportStatus };
+
+// Same key + same bytes answers with the same job, so a retry is safe.
+export function createImport(file: File, key: string): Promise<{ id: string }> {
+  const form = new FormData();
+  form.append('file', file);
+  return request<{ id: string }>('POST', '/imports', form, {
+    'Idempotency-Key': key,
+  });
+}
+
+export function getImport(id: string): Promise<ImportJob> {
+  return request<ImportJob>('GET', `/imports/${encodeURIComponent(id)}`);
 }
