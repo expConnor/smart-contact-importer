@@ -489,8 +489,8 @@ describe('GET /v1/contacts', () => {
         aContact({ status: 'lead' }),
       ]);
 
-      // Upper case on purpose, but note what that does and does not prove: the
-      // DTO's own @Transform lower-cases `status`, so the REQUEST side arrives
+      // Upper case on purpose, but note what that does and does not prove:
+      // parseFilters lower-cases every filter value, so the REQUEST side arrives
       // lower case. The stored side is lower case only because this test seeds
       // it that way — an import that wrote 'Active' would still need the
       // clause's `mode: 'insensitive'`. The test below is what holds that down.
@@ -526,6 +526,41 @@ describe('GET /v1/contacts', () => {
       expect(res.status).toBe(200);
       const { items } = res.body as PageBody;
       expect(items.map((item) => item.id)).toEqual([acme.id]);
+    });
+
+    it('matches part of a company name', async () => {
+      // A search box, not a lookup: typing `cme` finds Acme.
+      const [acme] = await seedContacts([
+        aContact({ company: 'Acme' }),
+        aContact({ company: 'Globex' }),
+      ]);
+
+      const res = await ctx
+        .http()
+        .get('/v1/contacts?company=cme')
+        .set('Cookie', cookie);
+
+      expect(res.status).toBe(200);
+      const { items } = res.body as PageBody;
+      expect(items.map((item) => item.id)).toEqual([acme.id]);
+    });
+
+    it('searches any status text, not just a fixed list', async () => {
+      // Status comes straight from the imported CSV, so it can be anything.
+      // A fixed allow-list would answer 400 for a value that is really stored.
+      const [churned] = await seedContacts([
+        aContact({ status: 'Churned 2024' }),
+        aContact({ status: 'active' }),
+      ]);
+
+      const res = await ctx
+        .http()
+        .get('/v1/contacts?status=churn')
+        .set('Cookie', cookie);
+
+      expect(res.status).toBe(200);
+      const { items } = res.body as PageBody;
+      expect(items.map((item) => item.id)).toEqual([churned.id]);
     });
 
     it('treats a percent sign in a filter value as a character, not a wildcard', async () => {

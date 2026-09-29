@@ -93,21 +93,22 @@ describe('toWhere', () => {
     expect(toWhere<Col>([])).toEqual({});
   });
 
-  it('builds a case-insensitive equality clause per column', () => {
+  it('builds a case-insensitive substring clause per column', () => {
     expect(
       toWhere<Col>([
         { column: 'status', value: 'active' },
         { column: 'company', value: 'acme' },
       ]),
     ).toEqual({
-      status: { equals: 'active', mode: 'insensitive' },
-      company: { equals: 'acme', mode: 'insensitive' },
+      status: { contains: 'active', mode: 'insensitive' },
+      company: { contains: 'acme', mode: 'insensitive' },
     });
   });
 
-  // mode: 'insensitive' makes Prisma emit ILIKE, which reads `%` and `_` as
-  // wildcards. Unescaped, `?company=%` matched every row in the table — an
-  // equality filter that returns everything. Each of the three characters is
+  // `contains` with mode: 'insensitive' makes Prisma emit ILIKE '%value%',
+  // which reads `%` and `_` inside the value as wildcards too. Unescaped,
+  // `?company=%` matched every row in the table — a search for a literal
+  // percent sign that returns everything. Each of the three characters is
   // written out longhand below because the escaping is easy to read wrong: in
   // source, '\\%' is the two characters backslash and percent.
   it.each([
@@ -117,7 +118,7 @@ describe('toWhere', () => {
     ['c\\d', 'c\\\\d'],
   ])('escapes %j to %j', (value, escaped) => {
     expect(toWhere<Col>([{ column: 'company', value }])).toEqual({
-      company: { equals: escaped, mode: 'insensitive' },
+      company: { contains: escaped, mode: 'insensitive' },
     });
   });
 
@@ -127,13 +128,13 @@ describe('toWhere', () => {
   // percent — an escaped backslash followed by an escaped percent.
   it('escapes a backslash and the wildcard behind it independently', () => {
     expect(toWhere<Col>([{ column: 'company', value: '\\%' }])).toEqual({
-      company: { equals: '\\\\\\%', mode: 'insensitive' },
+      company: { contains: '\\\\\\%', mode: 'insensitive' },
     });
   });
 
   it('leaves a value with no wildcard characters alone', () => {
     expect(toWhere<Col>([{ column: 'company', value: 'acme corp' }])).toEqual({
-      company: { equals: 'acme corp', mode: 'insensitive' },
+      company: { contains: 'acme corp', mode: 'insensitive' },
     });
   });
 });

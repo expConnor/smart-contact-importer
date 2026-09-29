@@ -129,8 +129,9 @@ export function contactsPath(params: ContactParams, cursor?: string): string {
     sort: params.sort,
     limit: String(params.limit),
   });
+  const status = params.status.trim();
   const company = params.company.trim();
-  if (params.status !== '') query.set('status', params.status);
+  if (status !== '') query.set('status', status);
   if (company !== '') query.set('company', company);
   if (cursor !== undefined) query.set('cursor', cursor);
   return `/contacts?${query}`;

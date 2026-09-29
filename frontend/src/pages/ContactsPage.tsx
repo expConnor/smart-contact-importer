@@ -5,6 +5,7 @@ import {
   useTable,
 } from '@tanstack/react-table';
 import { useEffect, useMemo, useRef, useState } from 'react';
+import type { FormEvent } from 'react';
 import { ApiError, contactsPath, listContacts } from '../api';
 import type { Contact, ContactParams } from '../api';
 import { formatCell, formatDate, nextSort, rowCount } from '../contacts';
@@ -76,18 +77,20 @@ const noContacts: Contact[] = [];
 
 export function ContactsPage() {
   const [params, setParams] = useState(defaultParams);
+  const [statusInput, setStatusInput] = useState('');
   const [companyInput, setCompanyInput] = useState('');
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  // Wait until typing pauses, so one word is one request, not one per key.
-  // Trimmed here too, so "Acme " and "Acme" share a query key.
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      const company = companyInput.trim();
-      setParams((p) => (p.company === company ? p : { ...p, company }));
-    }, 300);
-    return () => clearTimeout(timer);
-  }, [companyInput]);
+  // Typing changes nothing; Search (or Enter) sends one request. Trimmed here
+  // too, so "Acme " and "Acme" share a query key.
+  function search(e: FormEvent) {
+    e.preventDefault();
+    setParams({
+      ...params,
+      status: statusInput.trim(),
+      company: companyInput.trim(),
+    });
+  }
 
   // New results start at the top, not wherever the old list was scrolled to.
   useEffect(() => {
@@ -122,29 +125,26 @@ export function ContactsPage() {
 
   return (
     <div className="panel contacts">
-      <div className="toolbar">
+      <form className="toolbar" onSubmit={search}>
         <label className="toolbar-field">
           <span>Status</span>
-          <select
-            className="input"
-            value={params.status}
-            onChange={(e) => setParams({ ...params, status: e.target.value })}
-          >
-            <option value="">All</option>
-            <option value="active">active</option>
-            <option value="bounced">bounced</option>
-            <option value="dormant">dormant</option>
-            <option value="lead">lead</option>
-          </select>
+          <input
+            className="input toolbar-search"
+            value={statusInput}
+            onChange={(e) => setStatusInput(e.target.value)}
+          />
         </label>
         <label className="toolbar-field">
-          <span>Company · exact</span>
+          <span>Company</span>
           <input
-            className="input toolbar-company"
+            className="input toolbar-search"
             value={companyInput}
             onChange={(e) => setCompanyInput(e.target.value)}
           />
         </label>
+        <button className="button" type="submit">
+          Search
+        </button>
         <label className="toolbar-field toolbar-end">
           <span>Limit</span>
           <select
@@ -159,7 +159,7 @@ export function ContactsPage() {
             <option value={100}>100</option>
           </select>
         </label>
-      </div>
+      </form>
 
       <div className="table-scroll" ref={scrollRef}>
         <table className={stale ? 'table table-stale' : 'table'}>

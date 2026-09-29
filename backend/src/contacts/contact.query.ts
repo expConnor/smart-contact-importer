@@ -7,16 +7,9 @@ import { ListContactsQueryDto } from './dto/list-contacts-query.dto';
 
 export const CONTACT_SORT_COLUMNS = ['createdAt', 'name', 'company'] as const;
 export const CONTACT_FILTER_COLUMNS = ['status', 'company'] as const;
-export const CONTACT_STATUSES = [
-  'active',
-  'bounced',
-  'dormant',
-  'lead',
-] as const;
 
 export type ContactSortColumn = (typeof CONTACT_SORT_COLUMNS)[number];
 export type ContactFilterColumn = (typeof CONTACT_FILTER_COLUMNS)[number];
-export type ContactStatus = (typeof CONTACT_STATUSES)[number];
 
 export type ContactListQuery = ListQuery<
   ContactSortColumn,

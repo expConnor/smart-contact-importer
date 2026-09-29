@@ -62,16 +62,20 @@ describe('contactsPath', () => {
     expect(contactsPath(defaults)).toBe('/contacts?sort=-createdAt&limit=50');
   });
 
-  it('adds status and a trimmed, encoded company', () => {
+  it('adds a trimmed, encoded status and company', () => {
     expect(
-      contactsPath({ ...defaults, status: 'active', company: '  Acme GmbH ' }),
+      contactsPath({
+        ...defaults,
+        status: ' churned ',
+        company: '  Acme GmbH ',
+      }),
     ).toBe(
-      '/contacts?sort=-createdAt&limit=50&status=active&company=Acme+GmbH',
+      '/contacts?sort=-createdAt&limit=50&status=churned&company=Acme+GmbH',
     );
   });
 
-  it('leaves out a company that is only spaces', () => {
-    expect(contactsPath({ ...defaults, company: '   ' })).toBe(
+  it('leaves out a status or company that is only spaces', () => {
+    expect(contactsPath({ ...defaults, status: '  ', company: '   ' })).toBe(
       '/contacts?sort=-createdAt&limit=50',
     );
   });

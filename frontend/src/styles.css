@@ -405,8 +405,8 @@ a:focus-visible {
   font-size: 13px;
 }
 
-.toolbar .toolbar-company {
-  width: 220px;
+.toolbar .toolbar-search {
+  width: 180px;
 }
 
 .toolbar-end {
