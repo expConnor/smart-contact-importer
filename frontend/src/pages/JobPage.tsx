@@ -5,6 +5,7 @@ import { errorText, getImport } from '../api';
 import { isPolling, shortId, STATUS_LINE } from '../job';
 import { ImportResult } from '../ImportResult';
 import { MappingReview } from '../MappingReview';
+import { RequestLogPanel } from '../RequestLogPanel';
 
 export function JobPage() {
   const { id = '' } = useParams();
@@ -65,35 +66,42 @@ export function JobPage() {
         )}
       </div>
 
-      {analysing && (
-        <div className="panel job-panel">
-          <h2 className="job-heading">Analysing</h2>
-          <p className="muted">
-            The worker decodes the file, finds the delimiter and header row, and
-            proposes a mapping. The review appears here when the job reaches{' '}
-            <span className="mono">AWAITING_MAPPING</span>.
-          </p>
-        </div>
-      )}
-
-      {/* key: switching jobs from the sidebar starts with fresh edits. */}
-      {status === 'AWAITING_MAPPING' && (
-        <MappingReview key={id} job={job.data} />
-      )}
-
-      {(importing || status === 'COMPLETED') && <ImportResult job={job.data} />}
-
-      {status === 'FAILED' && (
-        <div className="panel job-panel">
-          <h2 className="job-heading">This file couldn't be imported</h2>
-          <div className="alert" role="alert">
-            {/* The type allows null, though every failure path writes one. */}
-            <p className="mono">
-              {job.data.failureReason ?? 'No reason recorded.'}
+      <div className="job-content">
+        {analysing && (
+          <div className="panel job-panel">
+            <h2 className="job-heading">Analysing</h2>
+            <p className="muted">
+              The worker decodes the file, finds the delimiter and header row,
+              and proposes a mapping. The review appears here when the job
+              reaches <span className="mono">AWAITING_MAPPING</span>.
             </p>
           </div>
-        </div>
-      )}
+        )}
+
+        {/* key: switching jobs from the sidebar starts with fresh edits. */}
+        {status === 'AWAITING_MAPPING' && (
+          <MappingReview key={id} job={job.data} />
+        )}
+
+        {(importing || status === 'COMPLETED') && (
+          <ImportResult job={job.data} />
+        )}
+
+        {status === 'FAILED' && (
+          <div className="panel job-panel">
+            <h2 className="job-heading">This file couldn't be imported</h2>
+            <div className="alert" role="alert">
+              {/* The type allows null, though every failure path writes one. */}
+              <p className="mono">
+                {job.data.failureReason ?? 'No reason recorded.'}
+              </p>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* key: a click still pending on another job doesn't disable these. */}
+      <RequestLogPanel key={id} job={job.data} />
     </div>
   );
 }

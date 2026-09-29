@@ -672,11 +672,25 @@ a:focus-visible {
 
 /* ─── Job ────────────────────────────────────────────────────────────────── */
 
-/* Fills the page, so the mapping review can take the height left over. */
+/* Fills the page. Top panel across both columns; under it the content on
+   the left (the mapping review takes the height left over) and the request
+   log on the right. */
 .job {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  grid-template-rows: auto minmax(0, 1fr);
+  flex: 1;
+  min-height: 0;
+  gap: 16px;
+}
+
+.job > :first-child {
+  grid-column: 1 / -1;
+}
+
+.job-content {
   display: flex;
   flex-direction: column;
-  flex: 1;
   min-height: 0;
   gap: 16px;
 }
@@ -722,6 +736,115 @@ a:focus-visible {
 
 [data-status='FAILED'] {
   --status: var(--red);
+}
+
+/* ─── Request log ────────────────────────────────────────────────────────── */
+
+/* Full height of the content row. Head and buttons stay put; only the rows
+   scroll. */
+.log {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.log-head {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+.log-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.log-polling {
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+.log-dot {
+  color: var(--blue);
+}
+
+.log-sub {
+  font-size: 12px;
+}
+
+/* column-reverse starts the scroll at the bottom and keeps it there as rows
+   arrive, unless the reader has scrolled up. No scroll code needed. It also
+   sinks a short list to the bottom, so .log-rows takes the gap below it. */
+.log-scroll {
+  display: flex;
+  flex-direction: column-reverse;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  scrollbar-width: thin;
+}
+
+.log-rows {
+  margin: 0 0 auto;
+  padding: 0;
+  list-style: none;
+}
+
+.log-row {
+  padding: 8px 16px;
+}
+
+.log-row + .log-row {
+  border-top: 1px solid var(--border);
+}
+
+.log-line {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.log-route {
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+
+.log-code {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.log-code[data-code='201'],
+.log-code[data-code='202'] {
+  color: var(--green);
+}
+
+.log-code[data-code^='4'],
+.log-code[data-code^='5'] {
+  color: var(--red);
+}
+
+.log-note {
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+
+.log-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 16px;
+  border-top: 1px solid var(--border);
+}
+
+/* Nothing to try in this status: no empty padded box. */
+.log-actions:empty {
+  display: none;
 }
 
 /* ─── Mapping review ─────────────────────────────────────────────────────── */

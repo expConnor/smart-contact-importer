@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 import type { ChangeEvent, DragEvent } from 'react';
 import { useNavigate } from 'react-router';
 import { createImport } from './api';
+import { rememberUpload } from './requestLog';
 import { formatKb, uploadErrorCopy } from './upload';
 
 type Picked = { file: File; key: string };
@@ -25,7 +26,8 @@ export function UploadDialog({ onClose }: { onClose: () => void }) {
 
   const mutation = useMutation({
     mutationFn: ({ file, key }: Picked) => createImport(file, key),
-    onSuccess: ({ id }) => {
+    onSuccess: ({ id }, { file, key }) => {
+      rememberUpload(id, file, key);
       // An idle sidebar list does not poll, so it would never see the new job.
       void queryClient.invalidateQueries({ queryKey: ['imports'] });
       onClose();

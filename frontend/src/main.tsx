@@ -10,8 +10,11 @@ import {
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { BrowserRouter } from 'react-router';
-import { ApiError } from './api';
+import { ApiError, onResponse } from './api';
 import App from './App';
+import { recordCall } from './requestLog';
+
+onResponse(recordCall);
 
 // Any 401 means the cookie expired or was deleted. Forget the user and the
 // guard in App sends them to /login.

@@ -38,6 +38,22 @@ export function errorText(error: Error): string {
     : error.message;
 }
 
+// One answered request, as the request log sees it. `path` has no `/v1`.
+export type ApiCall = {
+  method: string;
+  path: string;
+  code: number;
+  body: unknown;
+};
+
+let responseListener: (call: ApiCall) => void = () => {};
+
+// The request log hears every answer, success or error, without each call
+// site passing the status code along.
+export function onResponse(listener: (call: ApiCall) => void): void {
+  responseListener = listener;
+}
+
 type ErrorEnvelope = {
   error?: { code?: unknown; message?: unknown; details?: unknown };
 };
@@ -87,6 +103,7 @@ async function request<T>(
   } catch {
     // Not JSON: keep the raw text so parseError can fall back.
   }
+  responseListener({ method, path, code: res.status, body: data });
 
   if (!res.ok) throw parseError(res.status, res.statusText, data);
   return data as T;
