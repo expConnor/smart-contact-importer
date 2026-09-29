@@ -169,8 +169,17 @@ export type MappingPayload = {
 
 export type InferenceSource = 'HEURISTIC' | 'LLM';
 
+// rowNumber is the spreadsheet row: header and preamble lines count.
+export type ImportRowError = {
+  rowNumber: number;
+  field: string | null;
+  message: string;
+  rawRow: Record<string, string>;
+};
+
 // Only the fields the UI reads today. The analysis fields stay null until the
-// job reaches AWAITING_MAPPING.
+// job reaches AWAITING_MAPPING. The counts stay 0 and errors stay [] until the
+// import settles; errors holds the first 100 by row.
 export type ImportJob = {
   id: string;
   status: ImportStatus;
@@ -178,7 +187,11 @@ export type ImportJob = {
   sampleRows: string[][] | null;
   proposedMapping: ColumnMapping[] | null;
   inferenceSource: InferenceSource | null;
+  failureReason: string | null;
   totalRows: number | null;
+  importedRows: number;
+  failedRows: number;
+  errors: ImportRowError[];
 };
 
 // Same key + same bytes answers with the same job, so a retry is safe.

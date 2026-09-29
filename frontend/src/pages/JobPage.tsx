@@ -3,6 +3,7 @@ import { useEffect } from 'react';
 import { useParams } from 'react-router';
 import { errorText, getImport } from '../api';
 import { isPolling, shortId, STATUS_LINE } from '../job';
+import { ImportResult } from '../ImportResult';
 import { MappingReview } from '../MappingReview';
 
 export function JobPage() {
@@ -44,6 +45,7 @@ export function JobPage() {
 
   const { status } = job.data;
   const analysing = status === 'PENDING_ANALYSIS' || status === 'ANALYZING';
+  const importing = status === 'PENDING_IMPORT' || status === 'IMPORTING';
 
   return (
     <div className="job">
@@ -77,6 +79,20 @@ export function JobPage() {
       {/* key: switching jobs from the sidebar starts with fresh edits. */}
       {status === 'AWAITING_MAPPING' && (
         <MappingReview key={id} job={job.data} />
+      )}
+
+      {(importing || status === 'COMPLETED') && <ImportResult job={job.data} />}
+
+      {status === 'FAILED' && (
+        <div className="panel job-panel">
+          <h2 className="job-heading">This file couldn't be imported</h2>
+          <div className="alert" role="alert">
+            {/* The type allows null, though every failure path writes one. */}
+            <p className="mono">
+              {job.data.failureReason ?? 'No reason recorded.'}
+            </p>
+          </div>
+        </div>
       )}
     </div>
   );
