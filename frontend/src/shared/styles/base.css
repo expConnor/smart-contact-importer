@@ -12,6 +12,7 @@ body {
   color: var(--ink);
   font: 13px/1.5 var(--sans);
   -webkit-font-smoothing: antialiased;
+  scrollbar-color: var(--border-strong) transparent;
 }
 
 a {
@@ -31,6 +32,10 @@ p {
 
 .muted {
   color: var(--muted);
+}
+
+.dim {
+  color: var(--dim);
 }
 
 .label {

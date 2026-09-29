@@ -10,7 +10,7 @@ const helper = createColumnHelper<typeof features, Contact>();
 // A plain function, not a component: this file exports only data, so fast
 // refresh can reload it.
 function text(value: string, mono = false) {
-  const className = value === '' ? 'muted' : mono ? 'mono' : undefined;
+  const className = value === '' ? 'dim' : mono ? 'mono' : undefined;
   return <span className={className}>{formatCell(value)}</span>;
 }
 

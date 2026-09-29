@@ -16,6 +16,7 @@
   gap: 8px 16px;
   padding: 12px;
   border-bottom: 1px solid var(--border);
+  background: var(--subtle);
 }
 
 .toolbar-field {
@@ -40,9 +41,15 @@
 }
 
 /* Columns alternate in weight so the eye can follow them: Name strong,
-   Company and Status in ink, the rest muted; mono values a size smaller. */
+   Company and Status a grey below ink, the rest muted; mono values a size
+   smaller. */
 .table td[data-column='name'] {
   font-weight: 500;
+}
+
+.table td[data-column='company'],
+.table td[data-column='status'] {
+  color: var(--ink-2);
 }
 
 .table td[data-column='email'],
@@ -80,6 +87,12 @@
   }
 }
 
+/* Zebra rows: the eye keeps its line across a wide row. Not on the hovered
+   row, so the hover shade still shows. */
+.contacts tbody tr:nth-child(even):not(:hover) td {
+  background: var(--stripe);
+}
+
 .table-message {
   flex: 1;
   display: grid;
@@ -100,7 +113,7 @@
 .request-line {
   padding: 6px 16px;
   border-top: 1px solid var(--border);
-  background: var(--subtle);
+  background: var(--sunken);
   font: 11px var(--mono);
   color: var(--muted);
   white-space: nowrap;

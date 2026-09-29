@@ -39,8 +39,9 @@
   align-items: center;
   gap: 2px;
   padding: 32px;
-  border: 1px dashed var(--border);
+  border: 1px dashed var(--border-strong);
   border-radius: 8px;
+  background: var(--sunken);
   text-align: center;
   cursor: pointer;
 }

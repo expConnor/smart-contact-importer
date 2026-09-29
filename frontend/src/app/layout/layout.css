@@ -24,7 +24,7 @@
   gap: 1px;
   padding: 12px 8px;
   border-right: 1px solid var(--border);
-  background: var(--panel);
+  background: var(--chrome);
   overflow: hidden;
 }
 
@@ -52,7 +52,7 @@
 }
 
 .sidebar-link[aria-current='page'] {
-  background: var(--hover);
+  background: var(--active);
   box-shadow: inset 2px 0 0 var(--ink);
   border-radius: 0 var(--radius) var(--radius) 0;
   font-weight: 500;
@@ -124,7 +124,7 @@
 
 .header {
   border-bottom: 1px solid var(--border);
-  background: var(--panel);
+  background: var(--chrome);
 }
 
 .header-inner,
@@ -162,7 +162,7 @@
 
 .crumb-sep {
   margin: 0 6px;
-  color: var(--muted);
+  color: var(--dim);
 }
 
 .header-actions {
