@@ -3,6 +3,7 @@ import { useEffect } from 'react';
 import { useParams } from 'react-router';
 import { errorText, getImport } from '../api';
 import { isPolling, shortId, STATUS_LINE } from '../job';
+import { MappingReview } from '../MappingReview';
 
 export function JobPage() {
   const { id = '' } = useParams();
@@ -71,6 +72,11 @@ export function JobPage() {
             <span className="mono">AWAITING_MAPPING</span>.
           </p>
         </div>
+      )}
+
+      {/* key: switching jobs from the sidebar starts with fresh edits. */}
+      {status === 'AWAITING_MAPPING' && (
+        <MappingReview key={id} job={job.data} />
       )}
     </div>
   );

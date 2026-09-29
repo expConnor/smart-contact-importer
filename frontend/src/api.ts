@@ -152,8 +152,33 @@ export type ImportStatus =
   | 'COMPLETED'
   | 'FAILED';
 
-// Only the fields the UI reads today.
-export type ImportJob = { id: string; status: ImportStatus };
+export type TargetField =
+  'email' | 'name' | 'company' | 'jobTitle' | 'phone' | 'status' | '__ignore__';
+
+export type ColumnMapping = {
+  sourceColumn: string;
+  targetField: TargetField;
+  confidence: number;
+};
+
+export type MappingPayload = {
+  headerRowIndex: number;
+  mappings: ColumnMapping[];
+};
+
+export type InferenceSource = 'HEURISTIC' | 'LLM';
+
+// Only the fields the UI reads today. The analysis fields stay null until the
+// job reaches AWAITING_MAPPING.
+export type ImportJob = {
+  id: string;
+  status: ImportStatus;
+  headerRowIndex: number | null;
+  sampleRows: string[][] | null;
+  proposedMapping: ColumnMapping[] | null;
+  inferenceSource: InferenceSource | null;
+  totalRows: number | null;
+};
 
 // Same key + same bytes answers with the same job, so a retry is safe.
 export function createImport(file: File, key: string): Promise<{ id: string }> {
@@ -166,6 +191,18 @@ export function createImport(file: File, key: string): Promise<{ id: string }> {
 
 export function getImport(id: string): Promise<ImportJob> {
   return request<ImportJob>('GET', `/imports/${encodeURIComponent(id)}`);
+}
+
+// Answers 202 with the job, now PENDING_IMPORT.
+export function confirmMapping(
+  id: string,
+  payload: MappingPayload,
+): Promise<ImportJob> {
+  return request<ImportJob>(
+    'POST',
+    `/imports/${encodeURIComponent(id)}/mapping`,
+    payload,
+  );
 }
 
 export type ImportSummary = {

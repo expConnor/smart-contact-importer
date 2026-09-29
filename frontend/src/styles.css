@@ -220,6 +220,23 @@ a:focus-visible {
   font-weight: 500;
 }
 
+.sidebar-icon-link {
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+}
+
+.sidebar-icon {
+  flex: none;
+  width: 14px;
+  height: 14px;
+  color: var(--muted);
+}
+
+.sidebar-link[aria-current='page'] .sidebar-icon {
+  color: var(--ink);
+}
+
 .sidebar-heading {
   margin-top: 16px;
   padding: 0 10px 4px;
@@ -666,9 +683,12 @@ a:focus-visible {
 
 /* ─── Job ────────────────────────────────────────────────────────────────── */
 
+/* Fills the page, so the mapping review can take the height left over. */
 .job {
   display: flex;
   flex-direction: column;
+  flex: 1;
+  min-height: 0;
   gap: 16px;
 }
 
@@ -713,6 +733,135 @@ a:focus-visible {
 
 [data-status='FAILED'] {
   --status: var(--red);
+}
+
+/* ─── Mapping review ─────────────────────────────────────────────────────── */
+
+/* Like the contacts panel: takes the rest of the page, only the table box
+   scrolls; the alerts and footer stay in view under it. */
+.mapping {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.mapping-head {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+.mapping-meta {
+  font-size: 12px;
+}
+
+.mapping-samples {
+  display: block;
+  max-width: 280px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.mapping-select {
+  width: auto;
+  height: 28px;
+  padding: 0 4px;
+}
+
+/* A proposal worth a second look. On the cells: the pinned first cell has
+   its own background. */
+.table tr[data-low] td {
+  background: var(--subtle);
+}
+
+/* Colour comes from data-level: 3 green, 2 amber, 1 red. */
+.meter {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.meter-bars {
+  display: inline-flex;
+  gap: 2px;
+}
+
+.meter-bars span {
+  width: 3px;
+  height: 10px;
+  border-radius: 1px;
+  background: var(--border);
+}
+
+.meter[data-level='1'] .meter-bars span:nth-child(-n + 1) {
+  background: var(--red);
+}
+
+.meter[data-level='2'] .meter-bars span:nth-child(-n + 2) {
+  background: var(--amber);
+}
+
+.meter[data-level='3'] .meter-bars span {
+  background: var(--green);
+}
+
+.meter-score {
+  font: 11px var(--mono);
+}
+
+.manual {
+  padding: 1px 5px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: var(--muted);
+  font: 11px var(--mono);
+}
+
+.alert {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 12px;
+  border-left: 2px solid var(--red);
+  border-radius: 0 var(--radius) var(--radius) 0;
+  background: color-mix(in srgb, var(--red) 5%, transparent);
+}
+
+.alert-title {
+  color: var(--red);
+  font-weight: 500;
+}
+
+.alert ul {
+  margin: 0;
+  padding-left: 18px;
+}
+
+.alert .mono {
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+
+.mapping-alerts {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 16px;
+  border-top: 1px solid var(--border);
+}
+
+.mapping-footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 16px;
+  padding: 12px 16px;
+  border-top: 1px solid var(--border);
 }
 
 .tag {
