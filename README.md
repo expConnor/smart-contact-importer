@@ -60,6 +60,10 @@ Postgres for queued import jobs. Set `WORKER_ENABLED=false` to serve HTTP only
 (then nothing processes uploads). Uploaded CSVs are stored in
 `backend/uploads/` (gitignored).
 
+Small files finish in milliseconds, so the UI never shows the `ANALYZING` or
+`IMPORTING` states. Set `WORKER_DEMO_DELAY_MS=3000` to hold each job for 3 s
+before the worker runs it. Default `0` (no delay).
+
 `ANTHROPIC_API_KEY` is optional and empty by default. Column inference uses a
 deterministic heuristic without it. No LLM call is wired up yet, so today the
 heuristic always runs.
@@ -74,18 +78,23 @@ Seeded login — dev-only, from [backend/prisma/seed.ts](backend/prisma/seed.ts)
 
 All routes sit under `/v1`. Everything except `auth/*` needs the auth cookie.
 
-| Route                          | Does                                               |
-| ------------------------------ | -------------------------------------------------- |
-| `POST /v1/auth/login`          | sets the httpOnly JWT cookie                       |
-| `POST /v1/auth/logout`         | clears it                                          |
-| `GET /v1/me`                   | the logged-in user                                 |
-| `GET /v1/contacts`             | cursor-paginated list; `status`, `company`, `sort` |
-| `POST /v1/imports`             | multipart CSV + `Idempotency-Key` header → job id  |
-| `GET /v1/imports/:id`          | job status, proposed mapping, samples              |
-| `POST /v1/imports/:id/mapping` | confirm the mapping, start the import              |
+| Route                          | Does                                                            |
+| ------------------------------ | --------------------------------------------------------------- |
+| `POST /v1/auth/login`          | sets the httpOnly JWT cookie                                    |
+| `POST /v1/auth/logout`         | clears it                                                       |
+| `GET /v1/me`                   | the logged-in user                                              |
+| `GET /v1/contacts`             | cursor-paginated list; `status`, `company`, `sort`, `limit`     |
+| `POST /v1/imports`             | multipart CSV + `Idempotency-Key` header → job id               |
+| `GET /v1/imports`              | the user's jobs: id, status, file name                          |
+| `GET /v1/imports/:id`          | status, proposed mapping, samples, row counts, first 100 errors |
+| `POST /v1/imports/:id/mapping` | confirm the mapping, start the import                           |
 
-Work in progress: the import step is a stub. Confirming a mapping finishes the
-job, but no contacts are written yet.
+`status` and `company` are case-insensitive "contains" searches.
+
+The import upserts each good row as a contact, keyed on email, so importing the
+same person twice updates one row. Only the email can fail a row (missing or
+not an address). A failed row is saved with its row number, reason and raw
+cells; every other field is kept as typed.
 
 ### Tests
 
@@ -136,7 +145,7 @@ and the auth cookie works without CORS. Log in with the seeded user above.
 | Folder                 | Holds                                                         |
 | ---------------------- | ------------------------------------------------------------- |
 | `src/app/`             | Routes, session guard, query client, header and sidebar       |
-| `src/features/<name>/` | One feature: `api.ts` (HTTP), `queries.ts` (hooks), UI, CSS   |
+| `src/features/<name>/` | One feature (`auth`, `contacts`, `imports`): HTTP, hooks, UI  |
 | `src/shared/`          | Fetch wrapper, error text, `Panel` / `ErrorMessage`, base CSS |
 
 `@/` imports resolve to `src/`.
