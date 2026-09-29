@@ -27,19 +27,20 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --page: #0a0a0a;
-    --panel: #111111;
-    --ink: #ededed;
-    --muted: #a1a1a1;
-    --border: #1f1f1f;
-    --subtle: #161616;
-    --hover: #1a1a1a;
-    --shadow: none;
+    /* Neutral greys, no tint. Panels sit one step above the page. */
+    --page: #1c1c1c;
+    --panel: #242424;
+    --ink: #e8e8e8;
+    --muted: #a3a3a3;
+    --border: #363636;
+    --subtle: #2a2a2a;
+    --hover: #303030;
+    --shadow: 0 1px 2px rgb(0 0 0 / 0.24);
 
-    --green: #4fb37f;
-    --red: #e5675f;
-    --amber: #d9a441;
-    --blue: #6b9be0;
+    --green: #5cb88a;
+    --red: #e07a72;
+    --amber: #d6a651;
+    --blue: #7ea6dd;
   }
 }
 
@@ -1470,9 +1471,10 @@ a:focus-visible {
 
 /* ─── Import result ──────────────────────────────────────────────────────── */
 
-/* Shrinks to the page height when the failed rows run long; only the table
-   box scrolls, the footer stays in view. */
+/* Fills the content column, like the log beside it. Long failed rows
+   scroll inside the table box; the footer stays at the bottom. */
 .result {
+  flex: 1;
   min-height: 0;
   overflow: hidden;
 }
@@ -1509,6 +1511,7 @@ a:focus-visible {
 
 .result-errors {
   display: flex;
+  flex: 1;
   flex-direction: column;
   gap: 8px;
   min-height: 0;
@@ -1537,5 +1540,6 @@ a:focus-visible {
   align-items: center;
   justify-content: space-between;
   gap: 8px 16px;
-  margin-top: 12px;
+  margin-top: auto;
+  padding-top: 12px;
 }
