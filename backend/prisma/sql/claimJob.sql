@@ -43,6 +43,7 @@ RETURNING
   "originalFilename",
   "byteSize",
   "attempts",
+  "detectedHeaders",
   "detectedDelimiter",
   "detectedEncoding",
   "headerRowIndex",

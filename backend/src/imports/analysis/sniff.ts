@@ -146,7 +146,7 @@ function looksLikeHeader(row: string[]): boolean {
   return !cells.every((cell) => NUMERIC.test(cell));
 }
 
-function isBlank(row: string[]): boolean {
+export function isBlank(row: string[]): boolean {
   return row.every((cell) => cell.trim() === '');
 }
 

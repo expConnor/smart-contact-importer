@@ -25,6 +25,7 @@ const JOB: ClaimedJob = {
   originalFilename: 'contacts.csv',
   byteSize: 128,
   attempts: 1,
+  detectedHeaders: null,
   detectedDelimiter: null,
   detectedEncoding: null,
   headerRowIndex: null,

@@ -558,6 +558,7 @@ describe('GET /v1/imports/:id', () => {
         totalRows: 2,
         importedRows: 0,
         failedRows: 0,
+        errors: [],
       });
     });
 
@@ -580,7 +581,45 @@ describe('GET /v1/imports/:id', () => {
         totalRows: null,
         importedRows: 0,
         failedRows: 0,
+        errors: [],
       });
+    });
+
+    it('lists the first 100 errors by row, and counts them all', async () => {
+      const [job] = await seedJobs([
+        aJob({ userId: USER_ID, status: 'COMPLETED', failedRows: 150 }),
+      ]);
+      // Rows 2..151, inserted in reverse so insertion order cannot pass for
+      // row order.
+      const rowNumbers = Array.from({ length: 150 }, (_, i) => 151 - i);
+      await testDb().importError.createMany({
+        data: rowNumbers.map((rowNumber) => ({
+          importJobId: job.id,
+          rowNumber,
+          field: 'email',
+          message: 'Email is missing',
+          rawRow: { Email: '' },
+        })),
+      });
+
+      const res = await getImport(job.id);
+
+      expect(res.status).toBe(200);
+      const { errors, failedRows } = res.body as {
+        errors: { rowNumber: number }[];
+        failedRows: number;
+      };
+      expect(errors.map((e) => e.rowNumber)).toEqual(
+        Array.from({ length: 100 }, (_, i) => i + 2),
+      );
+      // Only what the user acts on: no id, no job id.
+      expect(errors[0]).toEqual({
+        rowNumber: 2,
+        field: 'email',
+        message: 'Email is missing',
+        rawRow: { Email: '' },
+      });
+      expect(failedRows).toBe(150);
     });
   });
 });
@@ -790,6 +829,7 @@ describe('POST /v1/imports/:id/mapping', () => {
         totalRows: 2,
         importedRows: 0,
         failedRows: 0,
+        errors: [],
       });
     });
 

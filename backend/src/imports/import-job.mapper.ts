@@ -1,5 +1,8 @@
-import { ImportJob } from '../generated/prisma/client';
-import { ImportJobResponseDto } from './dto/import-job-response.dto';
+import { ImportError, ImportJob } from '../generated/prisma/client';
+import {
+  ImportJobResponseDto,
+  ImportRowErrorDto,
+} from './dto/import-job-response.dto';
 import type { ColumnMapping } from './types';
 
 // The worker stores these as { rows } and { mappings } wrappers. The casts
@@ -7,7 +10,12 @@ import type { ColumnMapping } from './types';
 type StoredSampleRows = { rows: string[][] };
 type StoredMapping = { mappings: ColumnMapping[] };
 
-export function toImportJobResponseDto(row: ImportJob): ImportJobResponseDto {
+type ErrorRow = Pick<ImportError, 'rowNumber' | 'field' | 'message' | 'rawRow'>;
+
+export function toImportJobResponseDto(
+  row: ImportJob,
+  errors: ErrorRow[],
+): ImportJobResponseDto {
   const dto: ImportJobResponseDto = {
     id: row.id,
     status: row.status,
@@ -20,6 +28,11 @@ export function toImportJobResponseDto(row: ImportJob): ImportJobResponseDto {
     totalRows: row.totalRows,
     importedRows: row.importedRows,
     failedRows: row.failedRows,
+    // rawRow is always the import handler's { header: cell } object.
+    errors: errors.map((e) => ({
+      ...e,
+      rawRow: e.rawRow as ImportRowErrorDto['rawRow'],
+    })),
   };
   return dto;
 }

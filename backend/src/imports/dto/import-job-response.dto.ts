@@ -4,6 +4,13 @@ import type {
 } from '../../generated/prisma/enums';
 import type { ColumnMapping } from '../types';
 
+export class ImportRowErrorDto {
+  rowNumber!: number;
+  field!: string | null;
+  message!: string;
+  rawRow!: Record<string, string>;
+}
+
 export class ImportJobResponseDto {
   id!: string;
   status!: ImportJobStatus;
@@ -15,4 +22,6 @@ export class ImportJobResponseDto {
   totalRows!: number | null;
   importedRows!: number;
   failedRows!: number;
+  /** The first 100 by row. failedRows is the full count. */
+  errors!: ImportRowErrorDto[];
 }

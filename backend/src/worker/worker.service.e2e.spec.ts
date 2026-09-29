@@ -116,16 +116,19 @@ describe('tick', () => {
     expect(sampleRows[0].slice(0, 2)).toEqual(['Kai', 'Ferreira']);
   });
 
-  it('carries a mapped job to COMPLETED', async () => {
-    // Seeded, not confirmed through the API: this case is the import phase
-    // alone. The walk through the mapping route is the next test.
+  it('fails a mapped job whose file is gone', async () => {
+    // Seeded, never uploaded: the import phase alone, reading a file that is
+    // not on disk. The fake handler this replaced never opened the file, so it
+    // answered COMPLETED here.
     const [job] = await seedJobs([
       aJob({ userId: USER_ID, status: 'PENDING_IMPORT' }),
     ]);
 
-    await worker.tick();
+    await expect(worker.tick()).resolves.toBeUndefined();
 
-    expect((await jobRow(job.id)).status).toBe('COMPLETED');
+    const row = await jobRow(job.id);
+    expect(row.status).toBe('FAILED');
+    expect(row.failureReason).toBe('The import could not be completed.');
   });
 
   it('takes an upload through its own proposed mapping to COMPLETED', async () => {

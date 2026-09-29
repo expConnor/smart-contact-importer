@@ -102,5 +102,5 @@ model ImportError {
 
   job ImportJob @relation(fields: [importJobId], references: [id], onDelete: Cascade)
 
-  @@index([importJobId, rowNumber])
+  @@unique([importJobId, rowNumber])
 }

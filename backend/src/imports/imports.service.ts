@@ -56,7 +56,14 @@ export class ImportsService {
   }
 
   async findOne(userId: string, id: string): Promise<ImportJobResponseDto> {
-    return toImportJobResponseDto(await this.findOwned(userId, id));
+    const job = await this.findOwned(userId, id);
+    const errors = await this.prisma.importError.findMany({
+      where: { importJobId: id },
+      orderBy: { rowNumber: 'asc' },
+      take: 100,
+      select: { rowNumber: true, field: true, message: true, rawRow: true },
+    });
+    return toImportJobResponseDto(job, errors);
   }
 
   async confirmMapping(
@@ -88,7 +95,8 @@ export class ImportsService {
           confirmedMapping: { mappings: result.mapping.mappings },
         },
       });
-      return toImportJobResponseDto(updated);
+      // A job only gains errors once it is imported.
+      return toImportJobResponseDto(updated, []);
     } catch (error) {
       if (isRecordNotFound(error)) {
         throw new AppError('CONFLICT');
