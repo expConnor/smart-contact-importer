@@ -27,15 +27,16 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    /* Neutral greys, no tint. Panels sit one step above the page. */
-    --page: #1c1c1c;
-    --panel: #242424;
-    --ink: #e8e8e8;
-    --muted: #a3a3a3;
-    --border: #363636;
-    --subtle: #2a2a2a;
-    --hover: #303030;
-    --shadow: 0 1px 2px rgb(0 0 0 / 0.24);
+    /* Neutral greys, no tint. The page sits low; panels, the header and the
+       sidebar rise clearly above it, so each panel reads as its own block. */
+    --page: #181818;
+    --panel: #262626;
+    --ink: #f0f0f0;
+    --muted: #a8a8a8;
+    --border: #3a3a3a;
+    --subtle: #2e2e2e;
+    --hover: #353535;
+    --shadow: 0 1px 3px rgb(0 0 0 / 0.4);
 
     --green: #5cb88a;
     --red: #e07a72;
@@ -107,16 +108,18 @@ p {
   padding: 0 12px;
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  background: var(--panel);
+  background: var(--subtle);
   color: var(--ink);
   font: inherit;
   font-weight: 500;
+  white-space: nowrap;
   text-decoration: none;
   cursor: pointer;
 }
 
 .button:hover {
   border-color: var(--muted);
+  background: var(--hover);
 }
 
 .button-primary {
@@ -127,6 +130,7 @@ p {
 
 .button-primary:hover {
   border-color: var(--ink);
+  background: var(--ink);
   opacity: 0.85;
 }
 
@@ -219,6 +223,8 @@ a:focus-visible {
 
 .sidebar-link[aria-current='page'] {
   background: var(--hover);
+  box-shadow: inset 2px 0 0 var(--ink);
+  border-radius: 0 var(--radius) var(--radius) 0;
   font-weight: 500;
 }
 
@@ -342,13 +348,22 @@ a:focus-visible {
   color: var(--muted);
 }
 
+/* Phones: no room for the email beside the two buttons. */
+@media (max-width: 640px) {
+  .header-actions .mono {
+    display: none;
+  }
+}
+
 .page {
+  container: page / inline-size;
   display: flex;
   flex-direction: column;
   flex: 1;
   min-height: 0;
   padding-top: 24px;
   padding-bottom: 24px;
+  overflow-y: auto;
 }
 
 /* ─── Login ──────────────────────────────────────────────────────────────── */
@@ -538,6 +553,15 @@ a:focus-visible {
   opacity: 0.4;
 }
 
+/* Phones: Name, Email, Company and Status are enough to find a contact. */
+@media (max-width: 640px) {
+  .contacts [data-column='jobTitle'],
+  .contacts [data-column='phone'],
+  .contacts [data-column='createdAt'] {
+    display: none;
+  }
+}
+
 .table-message {
   flex: 1;
   display: grid;
@@ -689,6 +713,20 @@ a:focus-visible {
   grid-column: 1 / -1;
 }
 
+/* Narrow page: one column, log under the content, the page scrolls. The
+   log keeps its own scroll so a long poll history doesn't push past it. */
+@container page (max-width: 800px) {
+  .job {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: none;
+    flex: none;
+  }
+
+  .log {
+    max-height: 420px;
+  }
+}
+
 .job-content {
   display: flex;
   flex-direction: column;
@@ -697,6 +735,25 @@ a:focus-visible {
 }
 
 .job-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 16px;
+}
+
+/* Title strip on top of a panel: a tinted band, so each panel's name is
+   the first thing the eye lands on. The panel clips its corners. */
+.panel-head {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 16px;
+  border-bottom: 1px solid var(--border);
+  border-radius: 10px 10px 0 0;
+  background: var(--subtle);
+}
+
+.panel-body {
   display: flex;
   flex-direction: column;
   gap: 4px;
@@ -772,8 +829,17 @@ a:focus-visible {
 
 /* The job page's centrepiece: more room than the panels below it. */
 .job-top {
+  container: job-top / inline-size;
   gap: 8px;
   padding: 24px;
+}
+
+/* Too narrow for six steps: the timeline keeps its width and scrolls
+   sideways. Only then: a scroll box would clip the hover tips. */
+@container job-top (max-width: 740px) {
+  .timeline-scroll {
+    overflow-x: auto;
+  }
 }
 
 .job-top .job-title {
@@ -789,6 +855,7 @@ a:focus-visible {
   display: grid;
   grid-template-columns: repeat(6, minmax(96px, 1fr) 14px);
   grid-template-rows: auto auto 14px auto;
+  min-width: 740px;
   margin: 16px 0 8px;
   padding: 20px 44px 24px 32px;
   border: 1px solid var(--border);
@@ -1232,14 +1299,6 @@ a:focus-visible {
   overflow: hidden;
 }
 
-.log-head {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  padding: 16px;
-  border-bottom: 1px solid var(--border);
-}
-
 .log-title {
   display: flex;
   align-items: center;
@@ -1254,6 +1313,18 @@ a:focus-visible {
 
 .log-dot {
   color: var(--blue);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .log-dot {
+    animation: dot-pulse 1.6s ease-in-out infinite;
+  }
+}
+
+@keyframes dot-pulse {
+  50% {
+    opacity: 0.3;
+  }
 }
 
 .log-sub {
@@ -1340,14 +1411,6 @@ a:focus-visible {
   flex: 1;
   min-height: 0;
   overflow: hidden;
-}
-
-.mapping-head {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  padding: 16px;
-  border-bottom: 1px solid var(--border);
 }
 
 .mapping-meta {
@@ -1474,9 +1537,16 @@ a:focus-visible {
 /* Fills the content column, like the log beside it. Long failed rows
    scroll inside the table box; the footer stays at the bottom. */
 .result {
+  display: flex;
+  flex-direction: column;
   flex: 1;
   min-height: 0;
   overflow: hidden;
+}
+
+.result .panel-body {
+  flex: 1;
+  min-height: 0;
 }
 
 /* Three across on phones too: the numbers are short. */
@@ -1484,7 +1554,6 @@ a:focus-visible {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 8px;
-  margin-top: 8px;
 }
 
 .tile {
@@ -1494,6 +1563,7 @@ a:focus-visible {
   padding: 12px;
   border: 1px solid var(--border);
   border-radius: var(--radius);
+  background: var(--subtle);
 }
 
 .tile-count {

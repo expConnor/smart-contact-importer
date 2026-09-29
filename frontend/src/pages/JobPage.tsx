@@ -73,9 +73,11 @@ export function JobPage() {
 
       <div className="job-content">
         {analysing && (
-          <div className="panel job-panel">
-            <h2 className="job-heading">Analysing</h2>
-            <p className="muted">
+          <div className="panel">
+            <div className="panel-head">
+              <h2 className="job-heading">Analysing</h2>
+            </div>
+            <p className="muted panel-body">
               The worker decodes the file, finds the delimiter and header row,
               and proposes a mapping. The review appears here when the job
               reaches <span className="mono">AWAITING_MAPPING</span>.
@@ -93,13 +95,17 @@ export function JobPage() {
         )}
 
         {status === 'FAILED' && (
-          <div className="panel job-panel">
-            <h2 className="job-heading">This file couldn't be imported</h2>
-            <div className="alert" role="alert">
-              {/* The type allows null, though every failure path writes one. */}
-              <p className="mono">
-                {job.data.failureReason ?? 'No reason recorded.'}
-              </p>
+          <div className="panel">
+            <div className="panel-head">
+              <h2 className="job-heading">This file couldn't be imported</h2>
+            </div>
+            <div className="panel-body">
+              <div className="alert" role="alert">
+                {/* The type allows null, though every failure path writes one. */}
+                <p className="mono">
+                  {job.data.failureReason ?? 'No reason recorded.'}
+                </p>
+              </div>
             </div>
           </div>
         )}

@@ -159,7 +159,7 @@ export function ContactsPage() {
                   const id = header.column.id;
                   if (!isSortColumn(id)) {
                     return (
-                      <th key={header.id}>
+                      <th key={header.id} data-column={header.column.id}>
                         <table.FlexRender header={header} />
                       </th>
                     );
@@ -173,6 +173,7 @@ export function ContactsPage() {
                   return (
                     <th
                       key={header.id}
+                      data-column={id}
                       aria-sort={direction}
                       className={direction && 'sorted'}
                     >

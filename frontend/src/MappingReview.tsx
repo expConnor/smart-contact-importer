@@ -52,7 +52,7 @@ export function MappingReview({ job }: { job: ImportJob }) {
 
   return (
     <div className="panel mapping">
-      <div className="mapping-head">
+      <div className="panel-head">
         <h2 className="job-heading">Check the column mapping</h2>
         <p className="mono muted mapping-meta">
           header line {headerRowIndex + 1} · rows {job.totalRows ?? 0} · source{' '}

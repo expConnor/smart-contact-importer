@@ -37,7 +37,7 @@ export function RequestLogPanel({ job }: { job: ImportJob }) {
 
   return (
     <div className="panel log">
-      <div className="log-head">
+      <div className="panel-head">
         <div className="log-title">
           <h2 className="job-heading">Request log</h2>
           <span className="mono muted log-polling">
