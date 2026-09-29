@@ -1,0 +1,10 @@
+/* Global styles, in cascade order. Loaded once in main.tsx, before any
+   component, so feature styles next to their components can build on them. */
+
+@import './tokens.css';
+@import './base.css';
+@import './controls.css';
+@import './panel.css';
+@import './table.css';
+@import './status.css';
+@import './alert.css';

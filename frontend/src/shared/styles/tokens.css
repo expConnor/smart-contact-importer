@@ -1,0 +1,46 @@
+/* Colours, fonts and sizes. Every other file reads these. */
+
+:root {
+  color-scheme: light dark;
+
+  --page: #fafafa;
+  --panel: #ffffff;
+  --ink: #0a0a0a;
+  --muted: #6b6b6b;
+  --border: #ebebeb;
+  --subtle: #fafafa;
+  --hover: #f4f4f5;
+  --shadow: 0 1px 2px rgb(0 0 0 / 0.04);
+
+  /* Semantic: text, dots, stripes and 8 % tints only. */
+  --green: #2f855a;
+  --red: #c2413b;
+  --amber: #b7791f;
+  --blue: #3b6fb6;
+
+  --sans: 'Geist Variable', system-ui, sans-serif;
+  --mono: 'Geist Mono Variable', ui-monospace, monospace;
+
+  --control: 32px;
+  --radius: 6px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    /* Neutral greys, no tint. The page sits low; panels, the header and the
+       sidebar rise clearly above it, so each panel reads as its own block. */
+    --page: #181818;
+    --panel: #262626;
+    --ink: #f0f0f0;
+    --muted: #a8a8a8;
+    --border: #3a3a3a;
+    --subtle: #2e2e2e;
+    --hover: #353535;
+    --shadow: 0 1px 3px rgb(0 0 0 / 0.4);
+
+    --green: #5cb88a;
+    --red: #e07a72;
+    --amber: #d6a651;
+    --blue: #7ea6dd;
+  }
+}

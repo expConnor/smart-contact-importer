@@ -1,0 +1,97 @@
+/* Job page grid and its top panel. */
+
+/* Fills the page. Top panel across both columns; under it the content on
+   the left (the mapping review takes the height left over) and the request
+   log on the right. */
+.job {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  grid-template-rows: auto minmax(0, 1fr);
+  flex: 1;
+  min-height: 0;
+  gap: 16px;
+}
+
+.job > :first-child {
+  grid-column: 1 / -1;
+}
+
+/* Narrow page: one column, log under the content, the page scrolls. The
+   log keeps its own scroll so a long poll history doesn't push past it. */
+@container page (max-width: 800px) {
+  .job {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: none;
+    flex: none;
+  }
+
+  .log {
+    max-height: 420px;
+  }
+}
+
+.job-content {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  gap: 16px;
+}
+
+.job-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 16px;
+}
+
+.job-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+}
+
+.job-title {
+  font-size: 16px;
+  font-weight: 500;
+}
+
+/* Loading text: a highlight sweeps left to right through the letters. The
+   gradient is 3× the text's width, so the highlight starts and ends off
+   the text and each sweep has a pause. fit-content: the sweep crosses the
+   words, not the whole panel. */
+@media (prefers-reduced-motion: no-preference) {
+  .shimmer {
+    width: fit-content;
+    background: linear-gradient(
+        90deg,
+        var(--muted) 43%,
+        var(--ink) 50%,
+        var(--muted) 57%
+      )
+      0 0 / 300% 100%;
+    background-clip: text;
+    color: transparent;
+    animation: shimmer 2s linear infinite;
+  }
+}
+
+@keyframes shimmer {
+  from {
+    background-position-x: 100%;
+  }
+  to {
+    background-position-x: 0;
+  }
+}
+
+/* The job page's centrepiece: more room than the panels below it. */
+.job-top {
+  container: job-top / inline-size;
+  gap: 8px;
+  padding: 24px;
+}
+
+.job-top .job-title {
+  font-size: 18px;
+}

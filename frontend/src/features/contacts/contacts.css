@@ -1,0 +1,109 @@
+/* Contacts page: toolbar, table columns, footer. */
+
+/* Fills the page even with 0 rows; only the table box scrolls. */
+.contacts {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 16px;
+  padding: 12px;
+  border-bottom: 1px solid var(--border);
+}
+
+.toolbar-field {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.toolbar-field .input {
+  width: auto;
+  font-size: 13px;
+}
+
+.toolbar .toolbar-search {
+  width: 180px;
+}
+
+.toolbar-end {
+  margin-left: auto;
+}
+
+/* Columns alternate in weight so the eye can follow them: Name strong,
+   Company and Status in ink, the rest muted; mono values a size smaller. */
+.table td[data-column='name'] {
+  font-weight: 500;
+}
+
+.table td[data-column='email'],
+.table td[data-column='jobTitle'],
+.table td[data-column='phone'],
+.table td[data-column='createdAt'] {
+  color: var(--muted);
+}
+
+.sort {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+.sort:focus-visible {
+  outline: 2px solid var(--blue);
+  outline-offset: -2px;
+}
+
+/* Phones: Name, Email, Company and Status are enough to find a contact. */
+@media (max-width: 640px) {
+  .contacts [data-column='jobTitle'],
+  .contacts [data-column='phone'],
+  .contacts [data-column='createdAt'] {
+    display: none;
+  }
+}
+
+.table-message {
+  flex: 1;
+  display: grid;
+  place-items: center;
+  padding: 48px 16px;
+}
+
+.table-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  height: 44px;
+  padding: 0 16px;
+  border-top: 1px solid var(--border);
+}
+
+.request-line {
+  padding: 6px 16px;
+  border-top: 1px solid var(--border);
+  background: var(--subtle);
+  font: 11px var(--mono);
+  color: var(--muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}

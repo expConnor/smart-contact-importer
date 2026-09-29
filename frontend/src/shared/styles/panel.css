@@ -1,0 +1,39 @@
+/* Panels: a raised box. The Panel component adds a tinted title strip. */
+
+.panel {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  box-shadow: var(--shadow);
+}
+
+/* Title strip on top of a panel: a tinted band, so each panel's name is
+   the first thing the eye lands on. The panel clips its corners. */
+.panel-head {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 16px;
+  border-bottom: 1px solid var(--border);
+  border-radius: 10px 10px 0 0;
+  background: var(--subtle);
+}
+
+.panel-body {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 16px;
+}
+
+/* Title left, an optional aside (a status, a count) right. */
+.panel-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.panel-description {
+  font-size: 12px;
+}

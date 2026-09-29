@@ -1,0 +1,41 @@
+/* Job status colours: the sidebar dot and the job page tag. */
+
+/* Colour lives in CSS keyed on data-status; PENDING_* stay grey. The job
+   page tag and the sidebar dot both read --status. */
+[data-status='ANALYZING'],
+[data-status='IMPORTING'] {
+  --status: var(--blue);
+}
+
+[data-status='AWAITING_MAPPING'] {
+  --status: var(--amber);
+}
+
+[data-status='COMPLETED'] {
+  --status: var(--green);
+}
+
+[data-status='FAILED'] {
+  --status: var(--red);
+}
+
+.status::before {
+  content: '';
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  margin-right: 6px;
+  border-radius: 50%;
+  vertical-align: middle;
+  background: var(--status, var(--muted));
+}
+
+.tag {
+  padding: 2px 6px;
+  border: 1px solid currentColor;
+  border-radius: 4px;
+  background: color-mix(in srgb, currentColor 8%, transparent);
+  color: var(--status, var(--muted));
+  font: 11px var(--mono);
+  text-transform: uppercase;
+}

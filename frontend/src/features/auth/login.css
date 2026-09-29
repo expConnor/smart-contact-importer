@@ -1,0 +1,22 @@
+/* Login page. */
+
+.login {
+  display: grid;
+  place-items: center;
+  min-height: 100vh;
+  padding: 16px;
+}
+
+.login-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+  max-width: 320px;
+  padding: 24px;
+}
+
+.login-title {
+  font-size: 15px;
+  font-weight: 600;
+}

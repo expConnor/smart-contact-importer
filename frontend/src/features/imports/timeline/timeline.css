@@ -1,0 +1,451 @@
+/* Job timeline: phases, links, nodes and tips. */
+
+/* Too narrow for six steps: the timeline keeps its width and scrolls
+   sideways. Only then: a scroll box would clip the hover tips. */
+@container job-top (max-width: 740px) {
+  .timeline-scroll {
+    overflow-x: auto;
+  }
+}
+
+/* Rows: brackets, link labels, the line, node labels. Every cell is a
+   subgrid of those rows, so the line stays level even if a label wraps.
+   Node columns are only as wide as the dot: the links get the width, and a
+   node's name hangs centred under its dot. */
+.timeline {
+  container-type: inline-size;
+  display: grid;
+  grid-template-columns: repeat(6, minmax(96px, 1fr) 14px);
+  grid-template-rows: auto auto 14px auto;
+  min-width: 740px;
+  margin: 16px 0 8px;
+  padding: 20px 44px 24px 32px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--subtle);
+  font-size: 12px;
+  line-height: 16px;
+
+  /* Timing of one step: out of the old node, along the link, into the
+     new node. */
+  --step-out: 0ms;
+  --step-link: 150ms;
+  --step-in: 550ms;
+  --ease: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Label over a 1 px line with side ticks. */
+.tl-phase {
+  grid-row: 1;
+  margin: 0 4px 20px;
+  color: var(--muted);
+  font-size: 11px;
+  text-align: center;
+  letter-spacing: 0.02em;
+  transition: color 300ms var(--ease);
+}
+
+.tl-phase::after {
+  content: '';
+  display: block;
+  height: 6px;
+  margin-top: 4px;
+  border: 1px solid currentColor;
+  border-bottom: 0;
+  border-radius: 3px 3px 0 0;
+  opacity: 0.6;
+  transition: opacity 300ms var(--ease);
+}
+
+.tl-phase[data-current] {
+  color: var(--ink);
+  font-weight: 500;
+}
+
+.tl-phase[data-current]::after {
+  opacity: 1;
+}
+
+/* A phase of one node is as narrow as the dot: the label hangs centred
+   over it and a short tick points down instead of a bracket. */
+.tl-phase[data-lone] {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin: 0 0 20px;
+  white-space: nowrap;
+}
+
+.tl-phase[data-lone]::after {
+  width: 0;
+  border-width: 0 0 0 1px;
+  border-radius: 0;
+}
+
+.tl-link,
+.tl-node {
+  display: grid;
+  grid-template-rows: subgrid;
+  justify-items: center;
+  text-align: center;
+}
+
+.tl-link {
+  grid-row: 2 / span 2;
+  position: relative;
+  border-radius: var(--radius);
+  cursor: default;
+}
+
+.tl-node {
+  grid-row: 2 / span 3;
+}
+
+.tl-above {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  padding: 0 4px 10px;
+  white-space: nowrap;
+}
+
+.tl-actor {
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.tl-trigger {
+  color: var(--muted);
+  transition: color 300ms var(--ease);
+}
+
+.tl-link[data-dark] .tl-trigger,
+.tl-link[data-next] .tl-trigger {
+  color: var(--ink);
+}
+
+.tl-link[data-next] .tl-trigger {
+  font-weight: 500;
+}
+
+/* ─── Line ─── */
+
+.tl-track {
+  position: relative;
+  justify-self: stretch;
+}
+
+.tl-track::before,
+.tl-track::after {
+  content: '';
+  position: absolute;
+  top: 6px;
+  height: 2px;
+  background: var(--border);
+}
+
+/* Link: a grey track, and an ink fill that draws in left to right when the
+   job crosses it. */
+.tl-link .tl-track::before,
+.tl-link .tl-track::after {
+  left: 0;
+  right: 0;
+}
+
+.tl-link .tl-track::after {
+  background: var(--ink);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 450ms var(--ease) var(--step-link);
+}
+
+.tl-link[data-dark] .tl-track::after {
+  transform: scaleX(1);
+}
+
+/* The link the job waits on: dashes flow toward the next node. Blue when
+   a worker will act, grey when it's your move. */
+.tl-link[data-next] .tl-track::before {
+  --flow: var(--blue);
+  background: repeating-linear-gradient(
+    90deg,
+    var(--flow) 0 6px,
+    transparent 6px 12px
+  );
+  opacity: 0.7;
+  animation: tl-flow 700ms linear infinite;
+}
+
+.tl-link[data-next][data-actor='you'] .tl-track::before {
+  --flow: var(--muted);
+}
+
+@keyframes tl-flow {
+  from {
+    background-position-x: 0;
+  }
+  to {
+    background-position-x: 12px;
+  }
+}
+
+/* Node: the line runs through it. In from link i, out to link i + 1. In
+   turns ink once reached; out only when the job moved on. */
+.tl-node .tl-track::before {
+  left: 0;
+  right: 50%;
+}
+
+.tl-node .tl-track::after {
+  left: 50%;
+  right: 0;
+}
+
+.tl-node .tl-track::before,
+.tl-node .tl-track::after {
+  transition: background-color 150ms var(--ease);
+}
+
+.tl-node:not([data-look='future']) .tl-track::before {
+  background: var(--ink);
+  transition-delay: var(--step-in);
+}
+
+.tl-node[data-look='past'] .tl-track::after {
+  background: var(--ink);
+  transition-delay: var(--step-out);
+}
+
+.tl-node:last-child .tl-track::after {
+  display: none;
+}
+
+/* ─── Dot ─── */
+
+.tl-dot {
+  position: absolute;
+  z-index: 1;
+  top: 0;
+  left: calc(50% - 7px);
+  width: 14px;
+  height: 14px;
+  border: 2px solid var(--border);
+  border-radius: 50%;
+  background: var(--subtle);
+  transition:
+    border-color 200ms var(--ease),
+    background-color 200ms var(--ease),
+    box-shadow 200ms var(--ease);
+}
+
+.tl-node:not([data-look='future']) .tl-dot {
+  transition-delay: var(--step-in);
+}
+
+.tl-node[data-look='past'] .tl-dot {
+  border-color: var(--ink);
+  background: var(--ink);
+}
+
+/* A worker holds the job: blue. Done: green. Waiting (on a worker or on
+   you): ink. Failed: red. */
+.tl-node {
+  --ring: var(--ink);
+}
+
+.tl-node[data-status='ANALYZING'],
+.tl-node[data-status='IMPORTING'] {
+  --ring: var(--blue);
+}
+
+.tl-node[data-status='COMPLETED'] {
+  --ring: var(--green);
+}
+
+.tl-node[data-look='failed'] {
+  --ring: var(--red);
+}
+
+.tl-node[data-look='current'] .tl-dot,
+.tl-node[data-look='failed'] .tl-dot {
+  border-color: var(--ring);
+  background: var(--ring);
+  box-shadow:
+    inset 0 0 0 2px var(--subtle),
+    0 0 0 4px color-mix(in srgb, var(--ring) 15%, transparent);
+  animation: tl-arrive 500ms var(--ease) var(--step-in);
+}
+
+/* A beat when the job lands. */
+@keyframes tl-arrive {
+  40% {
+    transform: scale(1.35);
+  }
+}
+
+/* Still moving: a ring breathes out of the dot. */
+.tl-node[data-look='current']:not([data-status='COMPLETED']) .tl-dot::after {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  border: 2px solid var(--ring);
+  border-radius: 50%;
+  animation: tl-pulse 1.8s var(--ease) infinite;
+}
+
+@keyframes tl-pulse {
+  from {
+    transform: scale(1);
+    opacity: 0.5;
+  }
+  to {
+    transform: scale(2.6);
+    opacity: 0;
+  }
+}
+
+/* ─── Node labels ─── */
+
+/* Zero wide: its children overflow evenly on both sides of the dot. */
+.tl-below {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  width: 0;
+  padding-top: 10px;
+}
+
+.tl-name {
+  width: max-content;
+  /* One dot's share of the width, less a gap: breaks after an underscore
+     before it would touch the next name. */
+  max-width: calc(100cqw / 6 - 12px);
+  color: var(--muted);
+  transition: color 200ms var(--ease);
+}
+
+.tl-node:not([data-look='future']) .tl-name {
+  color: var(--ink);
+  transition-delay: var(--step-in);
+}
+
+.tl-node[data-look='current'] .tl-name,
+.tl-node[data-look='failed'] .tl-name {
+  font-weight: 600;
+}
+
+.tl-pill {
+  padding: 1px 8px;
+  white-space: nowrap;
+  border: 1px solid color-mix(in srgb, var(--ring) 35%, transparent);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--ring) 10%, transparent);
+  color: var(--ring);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  animation: tl-rise 300ms var(--ease) var(--step-in) backwards;
+}
+
+@keyframes tl-rise {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+}
+
+/* ─── Tooltip ─── */
+
+.tl-link:focus-visible {
+  outline: 2px solid var(--blue);
+  outline-offset: 2px;
+}
+
+.tip {
+  position: absolute;
+  z-index: 10;
+  top: calc(100% + 10px);
+  left: 50%;
+  width: max-content;
+  max-width: 280px;
+  padding: 8px 10px;
+  border-radius: var(--radius);
+  background: var(--ink);
+  color: var(--panel);
+  box-shadow: 0 8px 24px rgb(0 0 0 / 0.16);
+  font: 12px/1.45 var(--sans);
+  text-align: left;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transform: translate(-50%, -4px);
+  transition:
+    opacity 120ms var(--ease),
+    transform 120ms var(--ease),
+    visibility 120ms;
+}
+
+/* The end links' tips line up with the box edge instead of spilling out. */
+.tl-link[data-edge='start'] > .tip {
+  left: 0;
+  transform: translate(0, -4px);
+}
+
+.tl-link[data-edge='end'] > .tip {
+  left: auto;
+  right: 0;
+  transform: translate(0, -4px);
+}
+
+/* Arrow pointing up at the link. On the link, not the tip: it stays on
+   the link's centre however the tip is aligned. */
+.tl-link::after {
+  content: '';
+  position: absolute;
+  z-index: 10;
+  top: calc(100% + 6px);
+  left: calc(50% - 4px);
+  width: 8px;
+  height: 8px;
+  background: var(--ink);
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-4px) rotate(45deg);
+  transition:
+    opacity 120ms var(--ease),
+    transform 120ms var(--ease),
+    visibility 120ms;
+}
+
+.tl-link:hover > .tip,
+.tl-link:focus-visible > .tip,
+.tl-link:hover::after,
+.tl-link:focus-visible::after {
+  opacity: 1;
+  visibility: visible;
+}
+
+.tl-link:hover > .tip,
+.tl-link:focus-visible > .tip {
+  transform: translate(-50%, 0);
+}
+
+.tl-link[data-edge]:hover > .tip,
+.tl-link[data-edge]:focus-visible > .tip {
+  transform: none;
+}
+
+.tl-link:hover::after,
+.tl-link:focus-visible::after {
+  transform: rotate(45deg);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .timeline *,
+  .timeline *::before,
+  .timeline *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+}

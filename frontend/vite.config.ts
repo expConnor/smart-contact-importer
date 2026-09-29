@@ -4,6 +4,8 @@ import { defineConfig } from 'vite';
 
 export default defineConfig({
   plugins: [react()],
+  // `@/…` resolves to `src/…`, as set in tsconfig.app.json.
+  resolve: { tsconfigPaths: true },
   server: {
     // Same origin for the browser, so the backend's `lax` auth cookie just works.
     proxy: { '/v1': 'http://localhost:3000' },

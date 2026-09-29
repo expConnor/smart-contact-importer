@@ -1,0 +1,91 @@
+/* Mapping review: samples, selects, confidence meter. */
+
+/* Like the contacts panel: takes the rest of the page, only the table box
+   scrolls; the alerts and footer stay in view under it. */
+.mapping {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.mapping-samples {
+  display: block;
+  max-width: 280px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.mapping-select {
+  width: auto;
+  height: 28px;
+  padding: 0 4px;
+}
+
+/* A proposal worth a second look. On the cells: the pinned first cell has
+   its own background. */
+.table tr[data-low] td {
+  background: var(--subtle);
+}
+
+/* Colour comes from data-level: 3 green, 2 amber, 1 red. */
+.meter {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.meter-bars {
+  display: inline-flex;
+  gap: 2px;
+}
+
+.meter-bars span {
+  width: 3px;
+  height: 10px;
+  border-radius: 1px;
+  background: var(--border);
+}
+
+.meter[data-level='1'] .meter-bars span:nth-child(-n + 1) {
+  background: var(--red);
+}
+
+.meter[data-level='2'] .meter-bars span:nth-child(-n + 2) {
+  background: var(--amber);
+}
+
+.meter[data-level='3'] .meter-bars span {
+  background: var(--green);
+}
+
+.meter-score {
+  font: 11px var(--mono);
+}
+
+.manual {
+  padding: 1px 5px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: var(--muted);
+  font: 11px var(--mono);
+}
+
+.mapping-alerts {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 16px;
+  border-top: 1px solid var(--border);
+}
+
+.mapping-footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 16px;
+  padding: 12px 16px;
+  border-top: 1px solid var(--border);
+}

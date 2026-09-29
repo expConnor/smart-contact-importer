@@ -1,0 +1,195 @@
+/* App shell: header, sidebar and the page area. */
+
+/* Screen-high column: header on top, the shell takes the rest. */
+.app {
+  display: flex;
+  flex-direction: column;
+  height: 100dvh;
+}
+
+/* Sidebar left, page right; each scrolls on its own. */
+.shell {
+  display: grid;
+  grid-template-columns: 240px minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr);
+  flex: 1;
+  min-height: 0;
+}
+
+/* ─── Sidebar ────────────────────────────────────────────────────────────── */
+
+.sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 12px 8px;
+  border-right: 1px solid var(--border);
+  background: var(--panel);
+  overflow: hidden;
+}
+
+.sidebar-jobs {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  gap: 1px;
+  min-height: 0;
+  overflow-y: auto;
+  scrollbar-width: thin;
+}
+
+.sidebar-link {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 6px 10px;
+  border-radius: var(--radius);
+  text-decoration: none;
+}
+
+.sidebar-link:hover {
+  background: var(--hover);
+}
+
+.sidebar-link[aria-current='page'] {
+  background: var(--hover);
+  box-shadow: inset 2px 0 0 var(--ink);
+  border-radius: 0 var(--radius) var(--radius) 0;
+  font-weight: 500;
+}
+
+.sidebar-icon-link {
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+}
+
+.sidebar-icon {
+  flex: none;
+  width: 14px;
+  height: 14px;
+  color: var(--muted);
+}
+
+.sidebar-link[aria-current='page'] .sidebar-icon {
+  color: var(--ink);
+}
+
+.sidebar-heading {
+  margin-top: 16px;
+  padding: 0 10px 4px;
+  font-weight: 400;
+}
+
+.sidebar-note {
+  padding: 0 10px;
+}
+
+/* One line: status dot, file name (shrinks), short id. */
+.sidebar-job {
+  position: relative;
+  flex-direction: row;
+  align-items: center;
+}
+
+.sidebar-file {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.sidebar-id {
+  flex: none;
+  margin-left: 8px;
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--muted);
+}
+
+/* Phones: the sidebar sits above the page; its job list scrolls within 200 px. */
+@media (max-width: 640px) {
+  .shell {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto minmax(0, 1fr);
+  }
+
+  .sidebar {
+    max-height: 200px;
+    border-right: 0;
+    border-bottom: 1px solid var(--border);
+  }
+}
+
+.header {
+  border-bottom: 1px solid var(--border);
+  background: var(--panel);
+}
+
+.header-inner,
+.page {
+  padding: 0 24px;
+}
+
+@media (max-width: 640px) {
+  .header-inner,
+  .page {
+    padding: 0 16px;
+  }
+}
+
+.header-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  height: 48px;
+}
+
+.crumbs {
+  font-family: var(--mono);
+}
+
+.crumbs a {
+  color: var(--muted);
+  text-decoration: none;
+}
+
+.crumbs a:hover {
+  color: var(--ink);
+}
+
+.crumb-sep {
+  margin: 0 6px;
+  color: var(--muted);
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.header-actions .mono {
+  margin-right: 4px;
+  color: var(--muted);
+}
+
+/* Phones: no room for the email beside the two buttons. */
+@media (max-width: 640px) {
+  .header-actions .mono {
+    display: none;
+  }
+}
+
+.page {
+  container: page / inline-size;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  padding-top: 24px;
+  padding-bottom: 24px;
+  overflow-y: auto;
+}

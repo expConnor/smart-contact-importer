@@ -1,0 +1,81 @@
+/* Import result: count tiles and failed rows. */
+
+/* Fills the content column, like the log beside it. Long failed rows
+   scroll inside the table box; the footer stays at the bottom. */
+.result {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.result .panel-body {
+  flex: 1;
+  min-height: 0;
+}
+
+/* Three across on phones too: the numbers are short. */
+.tiles {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.tile {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--subtle);
+}
+
+.tile-count {
+  font: 20px var(--mono);
+}
+
+/* Colour only a count worth noticing: a green 0 is noise. */
+.tile[data-tone='good'] .tile-count {
+  color: var(--green);
+}
+
+.tile[data-tone='bad'] .tile-count {
+  color: var(--red);
+}
+
+.result-errors {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 0;
+  margin-top: 12px;
+}
+
+.result-errors .table-scroll {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.result-raw {
+  display: block;
+  max-width: 480px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.result-note {
+  font-size: 12px;
+}
+
+.result-footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 16px;
+  margin-top: auto;
+  padding-top: 12px;
+}

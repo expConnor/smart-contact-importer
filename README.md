@@ -131,7 +131,15 @@ Vite proxies `/v1` to `http://localhost:3000`, so the browser sees one origin
 and the auth cookie works without CORS. Log in with the seeded user above.
 
 `npm run check` needs nothing running: the tests cover pure helpers only
-(error parsing, breadcrumb). The login flow is checked in the browser.
+(no DOM). Screens are checked in the browser.
+
+| Folder                 | Holds                                                         |
+| ---------------------- | ------------------------------------------------------------- |
+| `src/app/`             | Routes, session guard, query client, header and sidebar       |
+| `src/features/<name>/` | One feature: `api.ts` (HTTP), `queries.ts` (hooks), UI, CSS   |
+| `src/shared/`          | Fetch wrapper, error text, `Panel` / `ErrorMessage`, base CSS |
+
+`@/` imports resolve to `src/`.
 
 ## Fixtures
 

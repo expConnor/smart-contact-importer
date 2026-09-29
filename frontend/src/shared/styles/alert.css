@@ -1,0 +1,26 @@
+/* A red-edged box for problems that need a fix. */
+
+.alert {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 12px;
+  border-left: 2px solid var(--red);
+  border-radius: 0 var(--radius) var(--radius) 0;
+  background: color-mix(in srgb, var(--red) 5%, transparent);
+}
+
+.alert-title {
+  color: var(--red);
+  font-weight: 500;
+}
+
+.alert ul {
+  margin: 0;
+  padding-left: 18px;
+}
+
+.alert .mono {
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
