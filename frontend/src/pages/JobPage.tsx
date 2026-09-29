@@ -4,6 +4,7 @@ import { useParams } from 'react-router';
 import { errorText, getImport } from '../api';
 import { isPolling, shortId, STATUS_LINE } from '../job';
 import { ImportResult } from '../ImportResult';
+import { JobTimeline } from '../JobTimeline';
 import { MappingReview } from '../MappingReview';
 import { RequestLogPanel } from '../RequestLogPanel';
 
@@ -50,14 +51,18 @@ export function JobPage() {
 
   return (
     <div className="job">
-      <div className="panel job-panel">
+      <div className="panel job-panel job-top">
         <div className="job-head">
           <h1 className="mono job-title">Import {shortId(id)}</h1>
           <span className="tag" data-status={status}>
             {status}
           </span>
         </div>
-        <p className="muted">{STATUS_LINE[status]}</p>
+        <JobTimeline job={job.data} />
+        {/* Shimmers while a worker still has work: the page isn't idle. */}
+        <p className={isPolling(status) ? 'muted shimmer' : 'muted'}>
+          {STATUS_LINE[status]}
+        </p>
         {/* The last good status stays; polling keeps trying underneath. */}
         {job.error && (
           <p className="error" role="alert">
