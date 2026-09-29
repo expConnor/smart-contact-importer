@@ -554,18 +554,6 @@ a:focus-visible {
   background: var(--status, var(--muted));
 }
 
-.status[data-status='active']::before {
-  background: var(--green);
-}
-
-.status[data-status='bounced']::before {
-  background: var(--red);
-}
-
-.status[data-status='lead']::before {
-  background: var(--blue);
-}
-
 .table-footer {
   display: flex;
   align-items: center;

@@ -16,17 +16,6 @@ function Text({ value, mono }: { value: string; mono?: boolean }) {
   return <span className={className}>{formatCell(value)}</span>;
 }
 
-// The dot's colour comes from CSS keyed on data-status, so unknown values
-// imported from a CSV still render (grey).
-function Status({ value }: { value: string }) {
-  if (value === '') return <Text value={value} />;
-  return (
-    <span className="status" data-status={value}>
-      {value}
-    </span>
-  );
-}
-
 const features = tableFeatures({});
 const helper = createColumnHelper<typeof features, Contact>();
 const columns = helper.columns([
@@ -52,7 +41,7 @@ const columns = helper.columns([
   }),
   helper.accessor('status', {
     header: 'Status',
-    cell: (info) => <Status value={info.getValue()} />,
+    cell: (info) => <Text value={info.getValue()} />,
   }),
   helper.accessor('createdAt', {
     header: 'Created',
