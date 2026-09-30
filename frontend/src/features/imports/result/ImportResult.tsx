@@ -18,7 +18,7 @@ export function ImportResult({ job }: { job: ImportJob }) {
       description={
         done ? (
           <span className="mono">
-            mapping source {job.inferenceSource ?? '—'}
+            mapping source: {job.inferenceSource ?? '—'}
           </span>
         ) : (
           'Counts arrive when the job settles.'
