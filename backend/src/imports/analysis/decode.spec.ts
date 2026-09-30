@@ -9,10 +9,12 @@ const UTF8_FIXTURES = [
   'google-contacts.csv',
   'typeform-responses.csv',
   'partial-rows.csv',
+  'excel-fr.csv',
 ];
 
-// No fixture carries a BOM, so this is the one place a handcrafted buffer is
-// the honest choice. Byte literals rather than `iconv.encode()`: a test that
+// excel-fr.csv carries a BOM, but a UTF-8 one over valid UTF-8. The
+// windows-1252 case below needs a BOM no real export would write, so a
+// handcrafted buffer is the honest choice. Byte literals rather than `iconv.encode()`: a test that
 // encodes with the library it is testing agrees with itself either way.
 const UTF8_BOM = Buffer.from([0xef, 0xbb, 0xbf]);
 const CP1252_MULLER = Buffer.from([0x4d, 0xfc, 0x6c, 0x6c, 0x65, 0x72]);
@@ -38,7 +40,7 @@ describe('decode', () => {
     expect(decode(csvFixture(name).body).encoding).toBe('utf-8');
   });
 
-  // The fixtures above are pure ASCII, where both codecs agree byte for byte
+  // Most fixtures above are pure ASCII, where both codecs agree byte for byte
   // and only the label distinguishes them. This is the case where they
   // genuinely disagree: read as win1252, these two bytes are `Ã¼`, so the
   // assertion on `text` fails rather than the assertion on `encoding`.
@@ -58,6 +60,14 @@ describe('decode', () => {
     // Whole-result equality: a surviving U+FEFF fails here, where `toContain`
     // would pass with the BOM still glued to the first cell.
     expect(decode(bytes)).toEqual({ text: 'Name\nAda\n', encoding: 'utf-8' });
+  });
+
+  // Excel's "CSV UTF-8" save. A surviving U+FEFF would glue itself to the
+  // first header, which then matches nothing.
+  it('strips the BOM Excel writes on a CSV UTF-8 save', () => {
+    const result = decode(csvFixture('excel-fr.csv').body);
+
+    expect(result.text.startsWith('Civilité;Prénom;Nom;')).toBe(true);
   });
 
   it('strips the BOM before falling back to windows-1252', () => {

@@ -74,6 +74,17 @@ const FIXTURES: {
     maybe: ['Nachname'],
   },
   {
+    // The rules know no French: only the `mail` keyword and the exact
+    // `telephone` hit. `Nom` is the surname, so leaving it unmapped is the
+    // safe miss.
+    name: 'excel-fr.csv',
+    mapped: {
+      'Adresse e-mail': ['email', 0.7],
+      Téléphone: ['phone', 0.9],
+    },
+    maybe: [],
+  },
+  {
     name: 'partial-rows.csv',
     mapped: {
       'Full Name': ['name', 0.9],

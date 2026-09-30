@@ -315,6 +315,7 @@ describe('the SPEC fixtures', () => {
     ['google-contacts.csv', 8, 0],
     ['typeform-responses.csv', 6, 0],
     ['excel-de.csv', 10, 0],
+    ['excel-fr.csv', 10, 0],
   ])('imports %s to COMPLETED', async (name, imported, failed) => {
     const id = await importFile(csvFixture(name));
 

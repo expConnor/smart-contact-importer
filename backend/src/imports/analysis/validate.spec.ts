@@ -13,6 +13,7 @@ const FIXTURES = [
   'excel-de.csv',
   'partial-rows.csv',
   'path-guess-rejected.csv',
+  'excel-fr.csv',
 ];
 
 /** Bytes → decode → sniff. Its result goes into the validator unchanged. */

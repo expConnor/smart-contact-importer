@@ -36,6 +36,7 @@ const FIXTURES = [
     headerRowIndex: 0,
     totalRows: 276,
   },
+  { name: 'excel-fr.csv', delimiter: ';', headerRowIndex: 0, totalRows: 10 },
 ];
 
 const textOf = (name: string) => decode(csvFixture(name).body).text;
@@ -158,6 +159,22 @@ describe('rowStream', () => {
 
     expect(rows[0]).toContain('Nachname');
     expect(rows[1]).toContain('Müller');
+  });
+
+  // The import reads the file again off disk, so the BOM has to go here too,
+  // not only in decode. Otherwise the header row the worker skips and the one
+  // the preview showed differ in their first cell.
+  it('drops the BOM off the stream', async () => {
+    const rows: string[][] = [];
+    for await (const row of rowStream(
+      fixturePath('excel-fr.csv'),
+      'utf-8',
+      ';',
+    )) {
+      rows.push(row);
+    }
+
+    expect(rows[0]?.[0]).toBe('Civilité');
   });
 
   // `.pipe()` does not forward errors. Without the forwarding in rowStream

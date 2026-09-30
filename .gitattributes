@@ -1,8 +1,9 @@
 # Acceptance fixtures are byte-exact inputs, not text to be tidied.
 #
-# Two of them encode a parser assumption in their bytes: linkedin-connections.csv
-# and excel-de.csv ship CRLF, and excel-de.csv is Windows-1252, not UTF-8. Git's
-# default eol normalisation (any clone with core.autocrlf set) would rewrite both,
+# Three of them encode a parser assumption in their bytes: linkedin-connections.csv,
+# excel-de.csv and excel-fr.csv ship CRLF, excel-de.csv is Windows-1252, not UTF-8,
+# and excel-fr.csv opens with a BOM. Git's default eol normalisation (any clone
+# with core.autocrlf set) would rewrite all three,
 # and the encoding and preamble tests would then pass for the wrong reason.
 #
 # -text disables eol conversion while keeping the files diffable.
