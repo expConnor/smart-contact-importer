@@ -110,7 +110,8 @@ export function serverIssues(error: Error): string[] {
     .map((issue) => `${issue.field}: ${issue.message}`);
 }
 
-// Shows the no-key path is the one that ran.
+// Shows which path picked the mapping. The built-in rules run with no key
+// and also when the AI call fails.
 export function sourceLabel(source: InferenceSource): string {
-  return source === 'LLM' ? 'AI' : 'built-in rules (no AI key)';
+  return source === 'LLM' ? 'AI' : 'built-in rules';
 }

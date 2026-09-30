@@ -178,7 +178,7 @@ describe('serverIssues', () => {
 
 describe('sourceLabel', () => {
   it.each([
-    ['HEURISTIC', 'built-in rules (no AI key)'],
+    ['HEURISTIC', 'built-in rules'],
     ['LLM', 'AI'],
   ] as const)('reads %s as %s', (source, label) => {
     expect(sourceLabel(source)).toBe(label);
