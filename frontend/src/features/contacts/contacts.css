@@ -87,10 +87,16 @@
   }
 }
 
+/* The cells a step toward the page colour: a touch darker than a panel,
+   in light and dark mode alike. The hover rule still wins. */
+.contacts .table td {
+  background: color-mix(in srgb, var(--panel), var(--page) 40%);
+}
+
 /* Zebra rows: the eye keeps its line across a wide row. Not on the hovered
    row, so the hover shade still shows. */
 .contacts tbody tr:nth-child(even):not(:hover) td {
-  background: var(--stripe);
+  background: color-mix(in srgb, var(--stripe), var(--page) 40%);
 }
 
 .table-message {
