@@ -52,6 +52,11 @@ export class ClaudeColumnGuesser implements ColumnGuesser {
       throw new Error(`stop_reason ${reply.stop_reason}`);
     }
 
-    return reply.parsed_output?.mappings ?? null;
+    // null is kept for "no guesser configured", so an empty reply is an error.
+    if (!reply.parsed_output) {
+      throw new Error('no parsed output');
+    }
+
+    return reply.parsed_output.mappings;
   }
 }

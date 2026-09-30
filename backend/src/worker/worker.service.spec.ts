@@ -41,6 +41,7 @@ const ANALYSIS: AnalysisOutcome = {
   sampleRows: { rows: [] },
   proposedMapping: { mappings: [] },
   inferenceSource: 'HEURISTIC',
+  inferenceFallback: 'NO_KEY',
   totalRows: 1,
 };
 

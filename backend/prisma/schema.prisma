@@ -55,19 +55,26 @@ enum InferenceSource {
   HEURISTIC
 }
 
+// Why the heuristic proposed the mapping. Null when Claude's guess was used.
+enum InferenceFallback {
+  NO_KEY
+  GUESS_FAILED
+  GUESS_REJECTED
+}
+
 model ImportJob {
-  id                String           @id @default(uuid(7)) @db.Uuid
-  userId            String           @db.Uuid
+  id                String             @id @default(uuid(7)) @db.Uuid
+  userId            String             @db.Uuid
   idempotencyKey    String
   fileHash          String
   originalFilename  String
   storagePath       String
   byteSize          Int
-  status            ImportJobStatus  @default(PENDING_ANALYSIS)
+  status            ImportJobStatus    @default(PENDING_ANALYSIS)
   failureReason     String?
-  leaseExpiresAt    DateTime?        @db.Timestamptz(3)
+  leaseExpiresAt    DateTime?          @db.Timestamptz(3)
   leaseOwner        String?
-  attempts          Int              @default(0)
+  attempts          Int                @default(0)
   detectedHeaders   Json?
   detectedDelimiter String?
   detectedEncoding  String?
@@ -76,13 +83,14 @@ model ImportJob {
   proposedMapping   Json?
   confirmedMapping  Json?
   inferenceSource   InferenceSource?
+  inferenceFallback InferenceFallback?
   totalRows         Int?
-  importedRows      Int              @default(0)
-  failedRows        Int              @default(0)
-  createdAt         DateTime         @default(now()) @db.Timestamptz(3)
-  updatedAt         DateTime         @updatedAt @db.Timestamptz(3)
-  startedAt         DateTime?        @db.Timestamptz(3)
-  completedAt       DateTime?        @db.Timestamptz(3)
+  importedRows      Int                @default(0)
+  failedRows        Int                @default(0)
+  createdAt         DateTime           @default(now()) @db.Timestamptz(3)
+  updatedAt         DateTime           @updatedAt @db.Timestamptz(3)
+  startedAt         DateTime?          @db.Timestamptz(3)
+  completedAt       DateTime?          @db.Timestamptz(3)
 
   user   User          @relation(fields: [userId], references: [id])
   errors ImportError[]

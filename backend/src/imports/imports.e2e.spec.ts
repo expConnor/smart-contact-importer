@@ -539,8 +539,8 @@ describe('GET /v1/imports/:id', () => {
 
       expect(res.status).toBe(200);
       // toEqual, not toMatchObject: the keys the body must NOT carry (the lease,
-      // storage details, detectedHeaders/Delimiter/Encoding, confirmedMapping)
-      // are asserted by being absent here.
+      // storage details, detectedHeaders, confirmedMapping) are asserted by
+      // being absent here.
       expect(res.body).toEqual({
         id: job.id,
         status: 'AWAITING_MAPPING',
@@ -554,10 +554,16 @@ describe('GET /v1/imports/:id', () => {
           { sourceColumn: 'name', targetField: 'name', confidence: 0.9 },
         ],
         inferenceSource: 'HEURISTIC',
+        inferenceFallback: null,
         failureReason: null,
         totalRows: 2,
         importedRows: 0,
         failedRows: 0,
+        attempts: 0,
+        maxAttempts: 3,
+        byteSize: 1024,
+        detectedEncoding: 'utf-8',
+        detectedDelimiter: ',',
         errors: [],
       });
     });
@@ -577,10 +583,16 @@ describe('GET /v1/imports/:id', () => {
         sampleRows: null,
         proposedMapping: null,
         inferenceSource: null,
+        inferenceFallback: null,
         failureReason: null,
         totalRows: null,
         importedRows: 0,
         failedRows: 0,
+        attempts: 0,
+        maxAttempts: 3,
+        byteSize: 1024,
+        detectedEncoding: null,
+        detectedDelimiter: null,
         errors: [],
       });
     });
@@ -825,10 +837,16 @@ describe('POST /v1/imports/:id/mapping', () => {
         ],
         proposedMapping: PROPOSED,
         inferenceSource: 'HEURISTIC',
+        inferenceFallback: null,
         failureReason: null,
         totalRows: 2,
         importedRows: 0,
         failedRows: 0,
+        attempts: 0,
+        maxAttempts: 3,
+        byteSize: 1024,
+        detectedEncoding: 'utf-8',
+        detectedDelimiter: ',',
         errors: [],
       });
     });

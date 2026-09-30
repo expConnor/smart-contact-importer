@@ -1,5 +1,6 @@
 import type {
   ImportJobStatus,
+  InferenceFallback,
   InferenceSource,
 } from '../../generated/prisma/enums';
 import type { ColumnMapping } from '../types';
@@ -18,10 +19,18 @@ export class ImportJobResponseDto {
   sampleRows!: string[][] | null;
   proposedMapping!: ColumnMapping[] | null;
   inferenceSource!: InferenceSource | null;
+  /** Why the heuristic was used. Null for LLM, and for jobs analysed before it was stored. */
+  inferenceFallback!: InferenceFallback | null;
   failureReason!: string | null;
   totalRows!: number | null;
   importedRows!: number;
   failedRows!: number;
+  /** Claims of the current phase: the analysis settle resets it, so on COMPLETED it counts import runs. */
+  attempts!: number;
+  maxAttempts!: number;
+  byteSize!: number;
+  detectedEncoding!: string | null;
+  detectedDelimiter!: string | null;
   /** The first 100 by row. failedRows is the full count. */
   errors!: ImportRowErrorDto[];
 }

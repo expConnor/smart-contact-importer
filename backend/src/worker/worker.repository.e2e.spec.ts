@@ -22,6 +22,7 @@ const ANALYSIS: AnalysisOutcome = {
   sampleRows: { rows: [] },
   proposedMapping: { mappings: [] },
   inferenceSource: 'HEURISTIC',
+  inferenceFallback: 'GUESS_REJECTED',
   totalRows: 42,
 };
 
@@ -195,9 +196,27 @@ describe('settleAnalysis', () => {
     expect(row.headerRowIndex).toBe(ANALYSIS.headerRowIndex);
     expect(row.detectedDelimiter).toBe(ANALYSIS.detectedDelimiter);
     expect(row.inferenceSource).toBe('HEURISTIC');
+    expect(row.inferenceFallback).toBe('GUESS_REJECTED');
     expect(row.totalRows).toBe(ANALYSIS.totalRows);
     expect(row.leaseOwner).toBeNull();
     expect(row.leaseExpiresAt).toBeNull();
+  });
+
+  it('stores no fallback reason when the guess was used', async () => {
+    const [job] = await seedJobs([aJob({ userId: USER_ID })]);
+    await w1.claim('analysis');
+
+    expect(
+      await w1.settleAnalysis(job.id, {
+        ...ANALYSIS,
+        inferenceSource: 'LLM',
+        inferenceFallback: null,
+      }),
+    ).toBe(true);
+
+    const row = await jobRow(job.id);
+    expect(row.inferenceSource).toBe('LLM');
+    expect(row.inferenceFallback).toBeNull();
   });
 });
 

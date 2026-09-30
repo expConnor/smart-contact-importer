@@ -1,4 +1,5 @@
 import type {
+  InferenceFallback,
   InferenceSource,
   ImportJobStatus,
 } from '../generated/prisma/enums';
@@ -28,6 +29,7 @@ export type AnalysisOutcome = {
   sampleRows: InputJsonObject;
   proposedMapping: InputJsonObject;
   inferenceSource: InferenceSource;
+  inferenceFallback: InferenceFallback | null;
   totalRows: number;
 };
 
@@ -42,6 +44,8 @@ export const IMPORT_HANDLER = Symbol('IMPORT_HANDLER');
 
 export const COLUMN_GUESSER = Symbol('COLUMN_GUESSER');
 
+// null means "no guesser configured" and nothing else: it is stored as NO_KEY.
+// A configured guesser that can't answer throws.
 export interface ColumnGuesser {
   guess(
     headers: string[],

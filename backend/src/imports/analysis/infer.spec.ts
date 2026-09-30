@@ -1,3 +1,4 @@
+import type { InferenceFallback } from '../../generated/prisma/enums';
 import type { ColumnGuesser } from '../../worker/types';
 import type { ColumnMapping } from '../types';
 import { inferMapping } from './infer';
@@ -12,10 +13,13 @@ const FILE = {
   ],
 };
 
-const HEURISTIC = {
-  mappings: match(FILE.headers, FILE.sampleRows),
-  source: 'HEURISTIC',
-};
+function heuristic(fallback: InferenceFallback) {
+  return {
+    mappings: match(FILE.headers, FILE.sampleRows),
+    source: 'HEURISTIC',
+    fallback,
+  };
+}
 
 const GOOD: ColumnMapping[] = [
   { sourceColumn: 'email', targetField: 'email', confidence: 0.95 },
@@ -31,24 +35,25 @@ describe('inferMapping', () => {
     await expect(inferMapping(FILE, guesser, signal)).resolves.toEqual({
       mappings: GOOD,
       source: 'LLM',
+      fallback: null,
     });
   });
 
-  it('falls back to the heuristic when there is no guesser', async () => {
+  it('falls back to the heuristic with NO_KEY when there is no guesser', async () => {
     const guesser: ColumnGuesser = { guess: jest.fn().mockResolvedValue(null) };
 
     await expect(inferMapping(FILE, guesser, signal)).resolves.toEqual(
-      HEURISTIC,
+      heuristic('NO_KEY'),
     );
   });
 
-  it('falls back to the heuristic when the guesser throws', async () => {
+  it('falls back to the heuristic with GUESS_FAILED when the guesser throws', async () => {
     const guesser: ColumnGuesser = {
       guess: jest.fn().mockRejectedValue(new Error('network down')),
     };
 
     await expect(inferMapping(FILE, guesser, signal)).resolves.toEqual(
-      HEURISTIC,
+      heuristic('GUESS_FAILED'),
     );
   });
 
@@ -86,13 +91,18 @@ describe('inferMapping', () => {
       'maps no column to email',
       [{ sourceColumn: 'Name', targetField: 'name', confidence: 0.8 }],
     ],
-  ])('falls back to the heuristic when the guess %s', async (_, bad) => {
-    const guesser: ColumnGuesser = { guess: jest.fn().mockResolvedValue(bad) };
+  ])(
+    'falls back to the heuristic with GUESS_REJECTED when the guess %s',
+    async (_, bad) => {
+      const guesser: ColumnGuesser = {
+        guess: jest.fn().mockResolvedValue(bad),
+      };
 
-    await expect(inferMapping(FILE, guesser, signal)).resolves.toEqual(
-      HEURISTIC,
-    );
-  });
+      await expect(inferMapping(FILE, guesser, signal)).resolves.toEqual(
+        heuristic('GUESS_REJECTED'),
+      );
+    },
+  );
 
   it('fills columns the guess left out with __ignore__, in header order', async () => {
     const file = { ...FILE, headers: ['email', 'Name', 'Notes'] };
@@ -111,6 +121,7 @@ describe('inferMapping', () => {
         { sourceColumn: 'Notes', targetField: '__ignore__', confidence: 0.9 },
       ],
       source: 'LLM',
+      fallback: null,
     });
   });
 });

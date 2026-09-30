@@ -9,6 +9,7 @@
 -- @param {Json} $8:proposedMapping detected column -> contact field guesses
 -- @param {String} $9:inferenceSource LLM or HEURISTIC
 -- @param {Int} $10:totalRows data rows, excluding the header row
+-- @param {String} $11:inferenceFallback? why the heuristic was used; null when the guess was
 UPDATE "ImportJob"
 SET
   "status" = 'AWAITING_MAPPING',
@@ -20,6 +21,7 @@ SET
   "sampleRows" = $7,
   "proposedMapping" = $8,
   "inferenceSource" = $9::"InferenceSource",
+  "inferenceFallback" = $11::"InferenceFallback",
   "totalRows" = $10,
   "leaseOwner" = NULL,
   "leaseExpiresAt" = NULL,

@@ -16,6 +16,13 @@
   grid-column: 1 / -1;
 }
 
+/* The import result is a report read top to bottom: it grows the page,
+   which scrolls, instead of scrolling inside a box. It still fills the
+   screen when short; the log stretches beside it. */
+.job:has(.result) {
+  min-height: auto;
+}
+
 /* Narrow page: one column, log under the content, the page scrolls. The
    log keeps its own scroll so a long poll history doesn't push past it. */
 @container page (max-width: 800px) {

@@ -25,6 +25,12 @@ type ImportBody = {
   proposedMapping: ColumnMapping[];
   importedRows: number;
   failedRows: number;
+  inferenceFallback: string | null;
+  attempts: number;
+  maxAttempts: number;
+  byteSize: number;
+  detectedEncoding: string | null;
+  detectedDelimiter: string | null;
   errors: {
     rowNumber: number;
     field: string;
@@ -280,6 +286,24 @@ describe('a second file that overlaps the first', () => {
         status: 'lead',
       }),
     ]);
+  });
+});
+
+describe('the run facts', () => {
+  it('reports how the import ran', async () => {
+    const file = csvFixture('clean.csv');
+    const id = await importFile(file);
+
+    // attempts counts the import phase only: the analysis settle resets it.
+    expect(await getImport(id)).toMatchObject({
+      status: 'COMPLETED',
+      attempts: 1,
+      maxAttempts: 3,
+      byteSize: file.body.length,
+      detectedEncoding: 'utf-8',
+      detectedDelimiter: ',',
+      inferenceFallback: 'NO_KEY',
+    });
   });
 });
 

@@ -39,6 +39,7 @@ export function aJob(overrides: JobOverrides): JobRow {
     detectedEncoding: null,
     headerRowIndex: null,
     inferenceSource: null,
+    inferenceFallback: null,
     totalRows: null,
     importedRows: 0,
     failedRows: 0,

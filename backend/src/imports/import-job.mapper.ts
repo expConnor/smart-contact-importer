@@ -1,3 +1,4 @@
+import { env } from '../config/env';
 import { ImportError, ImportJob } from '../generated/prisma/client';
 import {
   ImportJobResponseDto,
@@ -24,10 +25,16 @@ export function toImportJobResponseDto(
     proposedMapping:
       (row.proposedMapping as StoredMapping | null)?.mappings ?? null,
     inferenceSource: row.inferenceSource,
+    inferenceFallback: row.inferenceFallback,
     failureReason: row.failureReason,
     totalRows: row.totalRows,
     importedRows: row.importedRows,
     failedRows: row.failedRows,
+    attempts: row.attempts,
+    maxAttempts: env.WORKER_MAX_ATTEMPTS,
+    byteSize: row.byteSize,
+    detectedEncoding: row.detectedEncoding,
+    detectedDelimiter: row.detectedDelimiter,
     // rawRow is always the import handler's { header: cell } object.
     errors: errors.map((e) => ({
       ...e,

@@ -25,6 +25,10 @@ export type MappingPayload = {
 
 export type InferenceSource = 'HEURISTIC' | 'LLM';
 
+// Why the built-in rules proposed the mapping. null when Claude's guess was
+// used, and on jobs analysed before the reason was stored.
+export type InferenceFallback = 'NO_KEY' | 'GUESS_FAILED' | 'GUESS_REJECTED';
+
 // rowNumber is the spreadsheet row: header and preamble lines count.
 export type ImportRowError = {
   rowNumber: number;
@@ -43,10 +47,17 @@ export type ImportJob = {
   sampleRows: string[][] | null;
   proposedMapping: ColumnMapping[] | null;
   inferenceSource: InferenceSource | null;
+  inferenceFallback: InferenceFallback | null;
   failureReason: string | null;
   totalRows: number | null;
   importedRows: number;
   failedRows: number;
+  // The analysis settle resets attempts, so on COMPLETED it counts import runs.
+  attempts: number;
+  maxAttempts: number;
+  byteSize: number;
+  detectedEncoding: string | null;
+  detectedDelimiter: string | null;
   errors: ImportRowError[];
 };
 

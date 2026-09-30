@@ -70,6 +70,7 @@ export class WorkerRepository {
         outcome.proposedMapping,
         outcome.inferenceSource,
         outcome.totalRows,
+        outcome.inferenceFallback,
       ),
     );
     return result.length > 0;

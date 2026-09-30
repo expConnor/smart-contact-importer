@@ -70,6 +70,8 @@ describe('tick', () => {
       headerRowIndex: 0,
       totalRows: 2,
       inferenceSource: 'HEURISTIC',
+      // The default test app has no API key.
+      inferenceFallback: 'NO_KEY',
       // The stored shape is a { mappings } wrapper, not a bare array.
       proposedMapping: {
         mappings: expect.arrayContaining([
@@ -216,6 +218,21 @@ describe('tick with a column guesser', () => {
     expect(await jobRow(id)).toMatchObject({
       status: 'AWAITING_MAPPING',
       inferenceSource: 'LLM',
+      inferenceFallback: null,
+    });
+  });
+
+  it('stores GUESS_FAILED when the guesser throws', async () => {
+    guess.mockRejectedValueOnce(new Error('network down'));
+    const id = await upload(aCsv(), guessed);
+
+    await guessedWorker.tick();
+
+    expect(guess).toHaveBeenCalled();
+    expect(await jobRow(id)).toMatchObject({
+      status: 'AWAITING_MAPPING',
+      inferenceSource: 'HEURISTIC',
+      inferenceFallback: 'GUESS_FAILED',
     });
   });
 
@@ -233,6 +250,7 @@ describe('tick with a column guesser', () => {
     expect(await jobRow(id)).toMatchObject({
       status: 'AWAITING_MAPPING',
       inferenceSource: 'HEURISTIC',
+      inferenceFallback: 'GUESS_REJECTED',
     });
 
     const analysed = await guessed

@@ -31,7 +31,7 @@ export class AnalysisHandler implements JobHandler<AnalysisOutcome> {
       throw new Error(`No header row found in ${job.storagePath}`);
     }
 
-    const { mappings, source } = await inferMapping(
+    const { mappings, source, fallback } = await inferMapping(
       { headers, headerRowIndex, sampleRows },
       this.guesser,
       signal,
@@ -45,6 +45,7 @@ export class AnalysisHandler implements JobHandler<AnalysisOutcome> {
       sampleRows: { rows: sampleRows },
       proposedMapping: { mappings },
       inferenceSource: source,
+      inferenceFallback: fallback,
       totalRows: await countDataRows(path, encoding, delimiter, headerRowIndex),
     };
   }

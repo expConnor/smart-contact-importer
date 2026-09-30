@@ -1,7 +1,15 @@
+import type { ReactNode } from 'react';
 import { Link } from 'react-router';
 import { Panel } from '@/shared/ui/Panel';
 import type { ImportJob, ImportRowError } from '../api';
-import { cappedNote, rawRowText, skippedLine } from './result';
+import { PathTaken } from './PathTaken';
+import {
+  cappedNote,
+  delimiterLabel,
+  formatBytes,
+  rawRowText,
+  skippedLine,
+} from './result';
 import './result.css';
 
 // The counts are written when the job settles. Until then the API sends 0,
@@ -40,6 +48,16 @@ export function ImportResult({ job }: { job: ImportJob }) {
           />
         </div>
 
+        {done && (
+          <div className="result-details">
+            <PathTaken
+              source={job.inferenceSource}
+              fallback={job.inferenceFallback}
+            />
+            <RunFacts job={job} />
+          </div>
+        )}
+
         {done && job.errors.length > 0 && (
           <FailedRows
             errors={job.errors}
@@ -76,6 +94,62 @@ function CountTile({
       <p className="label">{label}</p>
       <p className="tile-count">{count ?? '—'}</p>
     </div>
+  );
+}
+
+// How the worker ran this job, as a spec sheet: label left, value right,
+// with a dim note where the raw number differs from the friendly one.
+function RunFacts({ job }: { job: ImportJob }) {
+  const facts: { label: string; value: ReactNode; note?: string }[] = [
+    {
+      label: 'Import attempts',
+      value: (
+        <>
+          <span className="pips" aria-hidden>
+            {Array.from({ length: job.maxAttempts }, (_, i) => (
+              <span key={i} className="pip" data-used={i < job.attempts} />
+            ))}
+          </span>
+          {job.attempts} of {job.maxAttempts}
+        </>
+      ),
+    },
+    {
+      label: 'File size',
+      value: formatBytes(job.byteSize),
+      note:
+        job.byteSize >= 1024
+          ? `${job.byteSize.toLocaleString('en')} B`
+          : undefined,
+    },
+    { label: 'Encoding', value: job.detectedEncoding ?? '—' },
+    { label: 'Delimiter', value: delimiterLabel(job.detectedDelimiter) },
+    // The spreadsheet row, counting from 1; the note is the 0-based index.
+    {
+      label: 'Header row',
+      value: job.headerRowIndex === null ? '—' : job.headerRowIndex + 1,
+      note:
+        job.headerRowIndex === null ? undefined : `index ${job.headerRowIndex}`,
+    },
+  ];
+
+  return (
+    <section className="result-card">
+      <header className="result-card-head">
+        <h3 className="label">Run facts</h3>
+      </header>
+      <dl className="facts-list">
+        {facts.map(({ label, value, note }) => (
+          <div key={label} className="fact">
+            <dt className="muted">{label}</dt>
+            <dd className="fact-value mono">
+              {value}
+              {note && <span className="dim">{note}</span>}
+            </dd>
+          </div>
+        ))}
+      </dl>
+    </section>
   );
 }
 

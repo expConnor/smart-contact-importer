@@ -1,18 +1,16 @@
-/* Import result: count tiles and failed rows. */
+/* Import result: count tiles, path taken, run facts and failed rows. */
 
-/* Fills the content column, like the log beside it. Long failed rows
-   scroll inside the table box; the footer stays at the bottom. */
+/* As tall as its content (the page scrolls, see job.css), and at least as
+   tall as the log beside it; the footer sits at the bottom. */
 .result {
   display: flex;
   flex-direction: column;
   flex: 1;
-  min-height: 0;
-  overflow: hidden;
 }
 
 .result .panel-body {
+  container: result / inline-size;
   flex: 1;
-  min-height: 0;
 }
 
 /* Three across on phones too: the numbers are short. */
@@ -45,16 +43,230 @@
   color: var(--red);
 }
 
-.result-errors {
-  display: flex;
-  flex: 1;
-  flex-direction: column;
-  gap: 8px;
-  min-height: 0;
+/* Path taken and run facts. Stacked; side by side once the panel is wide
+   enough for the diagram at its natural size plus a facts column. */
+.result-details {
+  display: grid;
+  gap: 12px;
   margin-top: 12px;
 }
 
+@container result (min-width: 940px) {
+  .result-details {
+    grid-template-columns: minmax(0, 1fr) 260px;
+  }
+}
+
+/* A bordered box with a caps label strip on top: the diagram and the facts. */
+.result-card {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--panel);
+  overflow: hidden;
+}
+
+.result-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 36px;
+  padding: 0 12px;
+  border-bottom: 1px solid var(--border);
+}
+
+.result-card-chip {
+  padding: 1px 8px;
+  border: 1px solid var(--border-strong);
+  border-radius: 999px;
+  color: var(--muted);
+  font-size: 10px;
+  white-space: nowrap;
+}
+
+.result-card-foot {
+  padding: 10px 12px;
+  border-top: 1px solid var(--border);
+  font-size: 12px;
+  color: var(--muted);
+}
+
+/* Path taken: a drawing on a dot grid. It is shown at its natural size at
+   most (larger only blows the text up) and shrinks with the panel; below
+   480px it scrolls sideways rather than shrink the text past reading. */
+.path-canvas {
+  padding: 16px 12px;
+  overflow-x: auto;
+  background-color: var(--sunken);
+  background-image: radial-gradient(
+    color-mix(in srgb, var(--border-strong) 70%, transparent) 1px,
+    transparent 1.5px
+  );
+  background-size: 14px 14px;
+  background-position: 7px 7px;
+}
+
+.path-svg {
+  display: block;
+  /* Auto margins, not flex centring: an overflowing flex item spills off
+     both sides and its left edge can't be scrolled to. */
+  margin-inline: auto;
+  width: 100%;
+  max-width: 636px;
+  min-width: 480px;
+}
+
+.path-node rect {
+  fill: var(--panel);
+  stroke: var(--border-strong);
+  stroke-width: 1;
+}
+
+.path-node[data-lit] rect {
+  fill: color-mix(in srgb, var(--green) 6%, var(--panel));
+  stroke: var(--green);
+  stroke-width: 1.25;
+  filter: drop-shadow(
+    0 0 5px color-mix(in srgb, var(--green) 22%, transparent)
+  );
+}
+
+.path-dot {
+  fill: none;
+  stroke: var(--border-strong);
+  stroke-width: 1.25;
+}
+
+.path-halo {
+  fill: none;
+}
+
+.path-node[data-lit] .path-dot {
+  fill: var(--green);
+  stroke: none;
+}
+
+.path-node[data-lit] .path-halo {
+  fill: color-mix(in srgb, var(--green) 20%, transparent);
+}
+
+.path-title {
+  font-size: 12.5px;
+  font-weight: 500;
+  fill: var(--muted);
+}
+
+.path-node[data-lit] .path-title {
+  fill: var(--ink);
+}
+
+.path-subtitle {
+  font-size: 11px;
+  fill: var(--dim);
+}
+
+.path-node[data-lit] .path-subtitle {
+  fill: var(--muted);
+}
+
+.path-edge > path {
+  stroke: var(--border-strong);
+  stroke-width: 1.25;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.path-edge[data-lit] > path {
+  stroke: var(--green);
+  stroke-width: 1.75;
+}
+
+/* Edge labels sit on the line, knocked out of it by their own fill. */
+.path-pill rect {
+  fill: var(--sunken);
+  stroke: var(--border-strong);
+  stroke-width: 1;
+}
+
+.path-pill text {
+  font: 10px var(--mono);
+  fill: var(--dim);
+}
+
+.path-edge[data-lit] .path-pill rect {
+  fill: color-mix(in srgb, var(--green) 12%, var(--sunken));
+  stroke: color-mix(in srgb, var(--green) 55%, transparent);
+}
+
+.path-edge[data-lit] .path-pill text {
+  fill: var(--green);
+}
+
+/* Run facts: label left, value right, a hairline between rows. As many
+   columns as fit; one in the side column. Each row draws its top line and
+   the list is pulled up 1px, so the first row's line hides under the
+   header's and every column ends without a stray line. */
+.facts-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  column-gap: 24px;
+  margin: -1px 0 0;
+  padding: 0 12px 2px;
+}
+
+.fact {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 0;
+  border-top: 1px solid var(--border-soft);
+  font-size: 12px;
+}
+
+.fact-value {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin: 0;
+  font-size: 13px;
+  color: var(--ink);
+  white-space: nowrap;
+}
+
+.fact-value .dim {
+  font-size: 11px;
+}
+
+/* One pip per allowed attempt; the used ones filled. */
+.pips {
+  display: inline-flex;
+  align-self: center;
+  gap: 3px;
+}
+
+.pip {
+  width: 6px;
+  height: 10px;
+  border-radius: 2px;
+  background: var(--border);
+}
+
+.pip[data-used='true'] {
+  background: var(--green);
+}
+
+.result-errors {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+/* Up to 100 rows: about ten show, the rest scroll under the sticky header,
+   so the footer stays one short scroll away. */
 .result-errors .table-scroll {
+  max-height: 440px;
   border: 1px solid var(--border);
   border-radius: var(--radius);
 }
