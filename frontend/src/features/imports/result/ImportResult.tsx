@@ -15,7 +15,15 @@ export function ImportResult({ job }: { job: ImportJob }) {
     <Panel
       className="result"
       title={done ? 'Import finished' : 'Importing'}
-      description={done ? undefined : 'Counts arrive when the job settles.'}
+      description={
+        done ? (
+          <span className="mono">
+            mapping source {job.inferenceSource ?? '—'}
+          </span>
+        ) : (
+          'Counts arrive when the job settles.'
+        )
+      }
     >
       <div className="panel-body">
         <div className="tiles">
