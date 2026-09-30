@@ -3,11 +3,11 @@ import { decode } from './decode';
 import { countDataRows, rowStream, sniff } from './sniff';
 import { csvFixture, fixturePath } from '../../test/builders/upload.builder';
 
-// The five SPEC fixtures plus partial-rows.csv, with every number this unit is
-// supposed to produce for them. Listed rather than globbed for the reason
-// decode.spec.ts gives: a glob that matched nothing leaves the suite green
-// with no cases in it. `totalRows` is fixtures/README.md's column, not a
-// number derived from the code under test.
+// The five SPEC fixtures, partial-rows.csv and path-guess-rejected.csv, with
+// every number this unit is supposed to produce for them. Listed rather than
+// globbed for the reason decode.spec.ts gives: a glob that matched nothing
+// leaves the suite green with no cases in it. `totalRows` is
+// fixtures/README.md's column, not a number derived from the code under test.
 const FIXTURES = [
   { name: 'clean.csv', delimiter: ',', headerRowIndex: 0, totalRows: 10 },
   {
@@ -30,6 +30,12 @@ const FIXTURES = [
   },
   { name: 'excel-de.csv', delimiter: ';', headerRowIndex: 0, totalRows: 10 },
   { name: 'partial-rows.csv', delimiter: ',', headerRowIndex: 0, totalRows: 5 },
+  {
+    name: 'path-guess-rejected.csv',
+    delimiter: ',',
+    headerRowIndex: 0,
+    totalRows: 276,
+  },
 ];
 
 const textOf = (name: string) => decode(csvFixture(name).body).text;

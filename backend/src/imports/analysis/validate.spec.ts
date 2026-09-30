@@ -12,6 +12,7 @@ const FIXTURES = [
   'typeform-responses.csv',
   'excel-de.csv',
   'partial-rows.csv',
+  'path-guess-rejected.csv',
 ];
 
 /** Bytes → decode → sniff. Its result goes into the validator unchanged. */

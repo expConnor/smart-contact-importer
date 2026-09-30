@@ -23,10 +23,25 @@ resolve to a real mailbox.
 | `excel-de.csv` | Read as UTF-8 it fails at byte 68. Read as comma-delimited it is one column. `Kunde` / `Interessent` / `Ehemaliger Kunde` are the customer's vocabulary, not ours |
 | `partial-rows.csv` | Both failures are the fatal field (one email absent, one unparseable). Both surviving rows carry a broken *non-fatal* field — `ext. 4471` and an empty phone — so the fatal/tolerated line is observable |
 
+## Inference paths
+
+Only one path depends on the file. The others depend on `backend/.env` (restart after a change).
+
+| Path | How to get it |
+| --- | --- |
+| Claude guess → validated → `LLM` | a valid `ANTHROPIC_API_KEY`, any fixture |
+| rules, `NO_KEY` | `ANTHROPIC_API_KEY=` |
+| Claude call fails → rules, `GUESS_FAILED` | `ANTHROPIC_BASE_URL=http://127.0.0.1:9` (provider down) or a revoked key |
+| Claude guess → rejected → rules, `GUESS_REJECTED` | a valid key and `path-guess-rejected.csv` |
+
+| File | The specific trap | Delimiter | Encoding | EOL | Cols | Rows |
+| --- | --- | --- | --- | --- | --- | --- |
+| `path-guess-rejected.csv` | Member directory pasted from a web page: headers carry non-breaking spaces and `’`. Claude copies them back as spaces and `'`, so exact-match validation rejects every column; the rules match normalised headers and still map all six. 276 messy rows: bad and missing emails, duplicates, Excel-mangled phones | `,` | UTF-8 | CRLF | 12 | 276 |
+
 ## Byte-level invariants
 
 `.gitattributes` sets `fixtures/** -text`. Without it a clone with `core.autocrlf`
-rewrites the two CRLF files and the encoding tests pass for the wrong reason.
+rewrites the CRLF files and the encoding tests pass for the wrong reason.
 
 ```bash
 file fixtures/excel-de.csv     # ISO-8859 text, with CRLF line terminators — must NOT say UTF-8
