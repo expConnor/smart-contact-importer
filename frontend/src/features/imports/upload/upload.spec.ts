@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { ApiError } from '@/shared/api/client';
-import { formatKb, uploadErrorText } from './upload';
+import { fixtureOptions, formatKb, uploadErrorText } from './upload';
 
 describe('uploadErrorText', () => {
   // The envelope message is generic; the field detail says what to fix.
@@ -41,5 +41,19 @@ describe('formatKb', () => {
     [512, '0.5 KB'],
   ])('shows %i bytes as %s', (bytes, text) => {
     expect(formatKb(bytes)).toBe(text);
+  });
+});
+
+describe('fixtureOptions', () => {
+  it('names each fixture by its file name, sorted', () => {
+    const urls = {
+      '../../../../../fixtures/linkedin-connections.csv': '/a.csv',
+      '../../../../../fixtures/clean.csv': '/b.csv',
+    };
+
+    expect(fixtureOptions(urls)).toEqual([
+      { name: 'clean.csv', url: '/b.csv' },
+      { name: 'linkedin-connections.csv', url: '/a.csv' },
+    ]);
   });
 });

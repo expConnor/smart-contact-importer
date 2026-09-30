@@ -4,10 +4,21 @@ import { ErrorMessage } from '@/shared/ui/ErrorMessage';
 import { useCreateImport } from '../queries';
 import { rememberUpload } from '../request-log/store';
 import { FileDropzone } from './FileDropzone';
-import { uploadErrorText } from './upload';
+import { fixtureOptions, uploadErrorText } from './upload';
+import type { FixtureOption } from './upload';
 import './upload.css';
 
 type Picked = { file: File; key: string };
+
+// The repo's fixtures/ folder, bundled as URLs so the raw bytes (cp1252, BOM,
+// CRLF) reach the server untouched. vite.config.ts allows the folder.
+const FIXTURES = fixtureOptions(
+  import.meta.glob<string>('../../../../../fixtures/*.csv', {
+    query: '?url',
+    import: 'default',
+    eager: true,
+  }),
+);
 
 // Mounted only while open, so file, key and error start empty every time.
 export function UploadDialog({ onClose }: { onClose: () => void }) {
@@ -15,6 +26,7 @@ export function UploadDialog({ onClose }: { onClose: () => void }) {
   const navigate = useNavigate();
   const [picked, setPicked] = useState<Picked | null>(null);
   const [missing, setMissing] = useState(false);
+  const [fixtureError, setFixtureError] = useState<string | null>(null);
   const upload = useCreateImport();
   const uploading = upload.isPending;
 
@@ -31,7 +43,21 @@ export function UploadDialog({ onClose }: { onClose: () => void }) {
     if (!file || uploading) return;
     setPicked({ file, key: crypto.randomUUID() });
     setMissing(false);
+    setFixtureError(null);
     upload.reset();
+  }
+
+  // Treated exactly like a chosen file, so it gets its own key too.
+  async function pickFixture(fixture: FixtureOption | undefined) {
+    if (!fixture) return;
+    try {
+      const response = await fetch(fixture.url);
+      if (!response.ok) throw new Error(`Could not load ${fixture.name}`);
+      const blob = await response.blob();
+      pick(new File([blob], fixture.name, { type: 'text/csv' }));
+    } catch (error) {
+      setFixtureError(error instanceof Error ? error.message : String(error));
+    }
   }
 
   function submit() {
@@ -50,7 +76,7 @@ export function UploadDialog({ onClose }: { onClose: () => void }) {
 
   const error = missing
     ? 'Choose a CSV file first.'
-    : upload.error && uploadErrorText(upload.error);
+    : (fixtureError ?? (upload.error && uploadErrorText(upload.error)));
 
   return (
     <dialog
@@ -81,6 +107,30 @@ export function UploadDialog({ onClose }: { onClose: () => void }) {
       </div>
 
       <FileDropzone file={picked?.file} disabled={uploading} onPick={pick} />
+
+      <label className="field">
+        <span className="label">Or use a fixture</span>
+        {/* Always shows the placeholder: the drop zone names the file. */}
+        <select
+          className="input"
+          value=""
+          disabled={uploading}
+          onChange={(event) =>
+            void pickFixture(
+              FIXTURES.find((f) => f.name === event.target.value),
+            )
+          }
+        >
+          <option value="" disabled>
+            Choose a fixture…
+          </option>
+          {FIXTURES.map((fixture) => (
+            <option key={fixture.name} value={fixture.name}>
+              {fixture.name}
+            </option>
+          ))}
+        </select>
+      </label>
 
       {picked && (
         <p className="mono muted dialog-key">Idempotency-Key {picked.key}</p>

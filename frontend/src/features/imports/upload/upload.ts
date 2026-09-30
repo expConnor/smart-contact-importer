@@ -13,3 +13,12 @@ export function uploadErrorText(error: Error): string {
 export function formatKb(bytes: number): string {
   return `${(bytes / 1024).toFixed(1)} KB`;
 }
+
+export type FixtureOption = { name: string; url: string };
+
+// import.meta.glob keys are paths; the file name is what the user knows.
+export function fixtureOptions(urls: Record<string, string>): FixtureOption[] {
+  return Object.entries(urls)
+    .map(([path, url]) => ({ name: path.split('/').pop() ?? path, url }))
+    .sort((a, b) => a.name.localeCompare(b.name));
+}
