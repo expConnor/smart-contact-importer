@@ -14,6 +14,7 @@ import { aCsv, csvFixture } from '../test/builders/upload.builder';
 import type { Upload } from '../test/builders/upload.builder';
 import { testDb } from '../test/db.fixture';
 import { WorkerService } from './worker.service';
+import { COLUMN_GUESSER } from './types';
 import type { CreateImportResponseDto } from '../imports/dto/create-import-response.dto';
 import type { ImportJobResponseDto } from '../imports/dto/import-job-response.dto';
 
@@ -29,8 +30,8 @@ function jobRow(id: string) {
 }
 
 /** Through the API, so the file is on disk where the handler will look. */
-async function upload(file: Upload): Promise<string> {
-  const res = await ctx
+async function upload(file: Upload, app: TestApp = ctx): Promise<string> {
+  const res = await app
     .http()
     .post('/v1/imports')
     .set('Cookie', cookie)
@@ -176,5 +177,80 @@ describe('tick', () => {
     // the user reads, so changing it should be a deliberate edit here too.
     expect(row.failureReason).toBe('The file could not be read.');
     expect(row.leaseOwner).toBeNull();
+  });
+});
+
+describe('tick with a column guesser', () => {
+  // The fake guesser. Each test sets what it answers.
+  const guess = jest.fn();
+  let guessed: TestApp;
+  let guessedWorker: WorkerService;
+
+  beforeAll(async () => {
+    guessed = await createTestApp({
+      overrides: [{ token: COLUMN_GUESSER, value: { guess } }],
+    });
+    guessedWorker = guessed.app.get(WorkerService);
+  });
+
+  afterAll(async () => {
+    await guessed.close();
+  });
+
+  // Jest keeps calls between tests unless told not to.
+  beforeEach(() => {
+    guess.mockReset();
+  });
+
+  it('saves a good guess with inferenceSource LLM', async () => {
+    // aCsv() has the headers email,name,company.
+    guess.mockResolvedValueOnce([
+      { sourceColumn: 'email', targetField: 'email', confidence: 0.95 },
+      { sourceColumn: 'name', targetField: 'name', confidence: 0.9 },
+      { sourceColumn: 'company', targetField: 'company', confidence: 0.9 },
+    ]);
+    const id = await upload(aCsv(), guessed);
+
+    await guessedWorker.tick();
+
+    expect(await jobRow(id)).toMatchObject({
+      status: 'AWAITING_MAPPING',
+      inferenceSource: 'LLM',
+    });
+  });
+
+  it('falls back to the heuristic on a bad guess, and still completes', async () => {
+    // 'E-Mail' is not a column in aCsv(), so validateMapping() rejects it.
+    guess.mockResolvedValueOnce([
+      { sourceColumn: 'E-Mail', targetField: 'email', confidence: 0.95 },
+    ]);
+    const id = await upload(aCsv(), guessed);
+
+    await guessedWorker.tick();
+
+    // Without this line the test passes with no wiring at all.
+    expect(guess).toHaveBeenCalled();
+    expect(await jobRow(id)).toMatchObject({
+      status: 'AWAITING_MAPPING',
+      inferenceSource: 'HEURISTIC',
+    });
+
+    const analysed = await guessed
+      .http()
+      .get(`/v1/imports/${id}`)
+      .set('Cookie', cookie)
+      .expect(200);
+    const { headerRowIndex, proposedMapping } =
+      analysed.body as ImportJobResponseDto;
+    await guessed
+      .http()
+      .post(`/v1/imports/${id}/mapping`)
+      .set('Cookie', cookie)
+      .send({ headerRowIndex, mappings: proposedMapping })
+      .expect(202);
+
+    await guessedWorker.tick();
+
+    expect((await jobRow(id)).status).toBe('COMPLETED');
   });
 });

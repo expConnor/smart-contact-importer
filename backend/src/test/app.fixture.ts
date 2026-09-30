@@ -24,6 +24,8 @@ import { VALIDATION_PIPE_OPTIONS } from '../common/errors/validation.options';
 export type CreateTestAppOptions = {
   // Test-module-only controllers (probes, throwers). Never added to AppModule.
   controllers?: Type<unknown>[];
+  // Providers swapped for a test double, e.g. a fake COLUMN_GUESSER.
+  overrides?: { token: unknown; value: unknown }[];
 };
 
 /**
@@ -34,10 +36,14 @@ export type CreateTestAppOptions = {
  * reviewer never runs.
  */
 export async function createTestApp(options: CreateTestAppOptions = {}) {
-  const moduleRef = await Test.createTestingModule({
+  const builder = Test.createTestingModule({
     imports: [AppModule],
     controllers: options.controllers ?? [],
-  }).compile();
+  });
+  for (const { token, value } of options.overrides ?? []) {
+    builder.overrideProvider(token).useValue(value);
+  }
+  const moduleRef = await builder.compile();
 
   // logger: false — AppErrorFilter warns on every branch; otherwise runs are noise.
   const app = moduleRef.createNestApplication({ logger: false });

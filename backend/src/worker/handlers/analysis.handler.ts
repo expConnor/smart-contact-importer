@@ -1,16 +1,26 @@
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { decode } from '../../imports/analysis/decode';
-import { match } from '../../imports/analysis/match';
+import { inferMapping } from '../../imports/analysis/infer';
 import { countDataRows, sniff } from '../../imports/analysis/sniff';
 import { UPLOAD_DIR } from '../../imports/storage';
-import { AnalysisOutcome, ClaimedJob, JobHandler } from '../types';
+import {
+  AnalysisOutcome,
+  ClaimedJob,
+  COLUMN_GUESSER,
+  JobHandler,
+} from '../types';
+import type { ColumnGuesser } from '../types';
 
-/** Reads the uploaded file and proposes a mapping, with no model involved. */
+/** Reads the uploaded file and proposes a mapping: the guesser's, or the heuristic's. */
 @Injectable()
-export class HeuristicAnalysisHandler implements JobHandler<AnalysisOutcome> {
-  async run(job: ClaimedJob, _signal: AbortSignal): Promise<AnalysisOutcome> {
+export class AnalysisHandler implements JobHandler<AnalysisOutcome> {
+  constructor(
+    @Inject(COLUMN_GUESSER) private readonly guesser: ColumnGuesser,
+  ) {}
+
+  async run(job: ClaimedJob, signal: AbortSignal): Promise<AnalysisOutcome> {
     const path = join(UPLOAD_DIR, job.storagePath);
     const { text, encoding } = decode(await readFile(path));
     const { delimiter, headerRowIndex, headers, sampleRows } = sniff(text);
@@ -21,14 +31,20 @@ export class HeuristicAnalysisHandler implements JobHandler<AnalysisOutcome> {
       throw new Error(`No header row found in ${job.storagePath}`);
     }
 
+    const { mappings, source } = await inferMapping(
+      { headers, headerRowIndex, sampleRows },
+      this.guesser,
+      signal,
+    );
+
     return {
       detectedHeaders: { headers },
       detectedDelimiter: delimiter,
       detectedEncoding: encoding,
       headerRowIndex,
       sampleRows: { rows: sampleRows },
-      proposedMapping: { mappings: match(headers, sampleRows) },
-      inferenceSource: 'HEURISTIC',
+      proposedMapping: { mappings },
+      inferenceSource: source,
       totalRows: await countDataRows(path, encoding, delimiter, headerRowIndex),
     };
   }
