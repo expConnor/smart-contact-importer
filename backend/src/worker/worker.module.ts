@@ -13,6 +13,8 @@ import {
 import { AnalysisHandler } from './handlers/analysis.handler';
 import { ImportHandler } from './handlers/import.handler';
 import { WorkerLoop } from './worker.loop';
+import { env } from '../config/env';
+import { ClaudeColumnGuesser } from '../imports/analysis/claude-guesser';
 
 @Module({
   imports: [PrismaModule],
@@ -22,8 +24,14 @@ import { WorkerLoop } from './worker.loop';
     WorkerLoop,
     { provide: WORKER_ID, useValue: `${hostname()}#${process.pid}` },
     { provide: ANALYSIS_HANDLER, useClass: AnalysisHandler },
-    { provide: COLUMN_GUESSER, useClass: NoColumnGuesser },
     { provide: IMPORT_HANDLER, useClass: ImportHandler },
+    {
+      provide: COLUMN_GUESSER,
+      useFactory: () =>
+        env.ANTHROPIC_API_KEY
+          ? new ClaudeColumnGuesser(env.ANTHROPIC_API_KEY)
+          : new NoColumnGuesser(),
+    },
   ],
 })
 export class WorkerModule {}

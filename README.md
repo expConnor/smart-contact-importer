@@ -64,9 +64,14 @@ Small files finish in milliseconds, so the UI never shows the `ANALYZING` or
 `IMPORTING` states. Set `WORKER_DEMO_DELAY_MS=3000` to hold each job for 3 s
 before the worker runs it. Default `0` (no delay).
 
-`ANTHROPIC_API_KEY` is optional and empty by default. Column inference uses a
-deterministic heuristic without it. No LLM call is wired up yet, so today the
-heuristic always runs.
+`ANTHROPIC_API_KEY` is optional and empty by default. It decides how the
+column mapping is guessed:
+
+- With a key: Claude guesses the mapping. On any error, the built-in rules
+  take over.
+- Without a key: the built-in rules only.
+- Privacy: with a key, the headers and 5 sample rows (real contact data) are
+  sent to Anthropic.
 
 Seeded login — dev-only, from [backend/prisma/seed.ts](backend/prisma/seed.ts):
 
