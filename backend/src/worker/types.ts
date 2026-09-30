@@ -4,6 +4,7 @@ import type {
 } from '../generated/prisma/enums';
 import type { claimJob } from '../generated/prisma/sql';
 import type { InputJsonObject } from '@prisma/client/runtime/client';
+import type { ColumnMapping } from '../imports/types';
 
 export const WORKER_ID = Symbol('WORKER_ID');
 
@@ -38,3 +39,20 @@ export interface JobHandler<TOutcome> {
 
 export const ANALYSIS_HANDLER = Symbol('ANALYSIS_HANDLER');
 export const IMPORT_HANDLER = Symbol('IMPORT_HANDLER');
+
+export const COLUMN_GUESSER = Symbol('COLUMN_GUESSER');
+
+export interface ColumnGuesser {
+  guess(
+    headers: string[],
+    sampleRows: string[][],
+    signal: AbortSignal,
+  ): Promise<ColumnMapping[] | null>;
+}
+
+// Used when no API key is set
+export class NoColumnGuesser implements ColumnGuesser {
+  guess(): Promise<null> {
+    return Promise.resolve(null);
+  }
+}
