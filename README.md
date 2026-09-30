@@ -3,8 +3,6 @@
 Ingestion path for arbitrary customer CSV contact exports: infer the column
 mapping, confirm it with the user, import in the background, browse the result.
 
-See [SPEC.md](SPEC.md) for scope.
-
 ## Features
 
 Upload a contact CSV in any layout. The app guesses which column is which.
