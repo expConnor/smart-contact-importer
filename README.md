@@ -5,6 +5,115 @@ mapping, confirm it with the user, import in the background, browse the result.
 
 See [SPEC.md](SPEC.md) for scope.
 
+## Features
+
+Upload a contact CSV in any layout. The app guesses which column is which.
+You check the guess. A background worker imports the rows. Then you browse
+the contacts.
+
+The screens show how the system works, not just what it produced: job
+statuses, HTTP codes, which path the guess took. It is built for engineers
+checking the mechanics.
+
+### 1. Upload a CSV
+
+- Drop any CSV, or pick one of the repo's [fixtures](fixtures/) from the list.
+- Each file gets an **Idempotency-Key**, a random id sent with the upload.
+  Sending the same key again returns the same job. A double click or a retry
+  never makes a second job.
+- The upload returns at once. All slow work happens later, in a worker.
+
+### 2. Watch the job move
+
+![Job page while a worker reads the file](docs/screenshots/analysing.png)
+
+- The timeline shows every status a job passes through. Above each step:
+  what moves it (your request, a worker, or you).
+- Hover a step to see what happens there, e.g. how a worker claims a job.
+- The page polls (asks the server again every 250 ms) until the job needs
+  you or is done.
+- Grey placeholder rows hold the place of the mapping table while the worker
+  reads the file.
+
+### 3. Check the column mapping
+
+![Mapping review for a Typeform export, headers are survey questions](docs/screenshots/mapping.png)
+
+- One row per column in the file: its header, a few sample values, and the
+  field it will import as.
+- Here the headers are survey questions (`What's your work email address?`).
+  The guess still maps them.
+- **Confidence** is three bars and a score. Below 0.85 it turns amber or red,
+  so weak guesses stand out. Change a dropdown and the row shows `manual`.
+- The line under the title says which line is the header, how many rows the
+  file has, and who made the guess. A LinkedIn export has 3 lines of notes
+  above its header; the header detection skips them.
+- Nothing is written until you click **Import contacts**. The button stays
+  off while the mapping is broken: no email column, or two columns claiming
+  one field.
+
+### 4. See the result
+
+![Finished import: counts, path taken, run facts, failed rows](docs/screenshots/result.png)
+
+The example is `path-guess-rejected.csv`: 276 messy rows, 256 imported, 20
+failed. The call to Claude failed, so the built-in rules took over and the
+import still went through.
+
+- **Counts:** rows, imported, failed.
+- **Path taken:** how the mapping was guessed. The steps this job took are lit.
+
+  | Path                                       | When                                                                                        |
+  | ------------------------------------------ | ------------------------------------------------------------------------------------------- |
+  | Claude guess → validate → mapping          | an API key is set and Claude's guess fits the file                                          |
+  | built-in rules (`NO_KEY`)                  | no API key                                                                                  |
+  | Claude fails → rules (`GUESS_FAILED`)      | the provider is down, the key is bad, or the call errors                                    |
+  | Claude rejected → rules (`GUESS_REJECTED`) | Claude's answer names a column the file lacks, maps a field twice, or leaves email unmapped |
+
+- **Run facts:** attempts used (of 3), file size, detected encoding and
+  delimiter, header row.
+- **Failed rows:** row number, reason, and the raw cells. Only the email can
+  fail a row (missing or not an address). A strange phone number is kept as
+  typed. The API returns the first 100 failures; the table shows about ten and
+  scrolls.
+
+### 5. Prove the guarantees
+
+The request log (right of the step 4 screenshot) lists every call this browser
+tab made for the job, with its status code. Repeated polls fold into one line
+(`×33`). Three buttons poke the backend:
+
+| Button           | Sends                                       | Expect                                       |
+| ---------------- | ------------------------------------------- | -------------------------------------------- |
+| Replay upload    | the same file with the same key             | `200`, same job id, no new job or analysis   |
+| Send bad mapping | a mapping naming a column the file lacks    | `422 MAPPING_INVALID`; the job does not move |
+| Confirm again    | the mapping, after it was already confirmed | `409 CONFLICT`                               |
+
+### 6. Browse contacts
+
+![Contacts filtered to status "warm" and sorted by company](docs/screenshots/contacts.png)
+
+- Filter by status and company (case-insensitive "contains"). Sort by name,
+  company or created date. Pick 25, 50 or 100 rows per page.
+- The table never sorts or filters rows itself. Each change becomes a new
+  request, and the exact request shows under the table.
+- **Load more** uses a cursor, not a page number. A cursor is an opaque token
+  that marks where the last page stopped. Rows added by a running import
+  can't shift pages, so no row repeats or goes missing.
+- Two contacts can share a company. The row id breaks the tie, so the order
+  is always fixed and page edges never drop a row.
+
+### How the guarantees hold
+
+| Guarantee                 | How                                                                                                                                                                                        |
+| ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| One upload, one job       | `(user, Idempotency-Key)` is unique in the database. A replay returns the stored job.                                                                                                      |
+| One person, one contact   | The import upserts (insert or update) on email.                                                                                                                                            |
+| No slow requests          | Upload saves the file and a job row, then returns. The worker does the analysis and the import.                                                                                            |
+| Safe with many workers    | A worker claims a job with `FOR UPDATE SKIP LOCKED` under a lease (a claim that expires). If the worker dies, the lease runs out and another worker retries, up to 3 times, then `FAILED`. |
+| Model output is untrusted | Every mapping (Claude's, the rules', yours) passes one check: each column exists, each is used once, each field is used once, email is mapped, the header row matches.                     |
+| Works with no API key     | Built-in rules match header names, keywords and value shapes.                                                                                                                              |
+
 ## Requirements
 
 - Docker (Compose v2)
