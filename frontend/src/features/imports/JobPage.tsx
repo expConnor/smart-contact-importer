@@ -3,6 +3,7 @@ import { errorText } from '@/shared/api/errors';
 import { ErrorMessage } from '@/shared/ui/ErrorMessage';
 import { Panel } from '@/shared/ui/Panel';
 import type { ImportJob } from './api';
+import { AnalysingPanel } from './mapping/AnalysingPanel';
 import { MappingReview } from './mapping/MappingReview';
 import { useImportJob } from './queries';
 import { RequestLogPanel } from './request-log/RequestLogPanel';
@@ -83,18 +84,6 @@ function JobSummary({
         <ErrorMessage>Polling failed: {errorText(pollError)}</ErrorMessage>
       )}
     </div>
-  );
-}
-
-function AnalysingPanel() {
-  return (
-    <Panel title="Analysing">
-      <p className="muted panel-body">
-        The worker decodes the file, finds the delimiter and header row, and
-        proposes a mapping. The review appears here when the job reaches{' '}
-        <span className="mono">AWAITING_MAPPING</span>.
-      </p>
-    </Panel>
   );
 }
 

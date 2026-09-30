@@ -81,6 +81,23 @@
   border-top: 1px solid var(--border);
 }
 
+/* Analysing: the review's shape, with bars where its content will be. */
+.mapping-skeleton-select {
+  width: 112px;
+  height: 28px;
+}
+
+.mapping-skeleton-note {
+  width: 280px;
+  height: 12px;
+}
+
+.mapping-skeleton-button {
+  width: 128px;
+  height: var(--control);
+  border-radius: var(--radius);
+}
+
 .mapping-footer {
   display: flex;
   flex-wrap: wrap;

@@ -92,6 +92,28 @@
   }
 }
 
+/* A placeholder bar where a value isn't written yet, with the same sweep.
+   The caller sets its size. Ink mixed into transparent reads on any
+   surface, light or dark. */
+.skeleton {
+  display: inline-block;
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--ink) 7%, transparent);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .skeleton {
+    background: linear-gradient(
+        90deg,
+        color-mix(in srgb, var(--ink) 7%, transparent) 40%,
+        color-mix(in srgb, var(--ink) 15%, transparent) 50%,
+        color-mix(in srgb, var(--ink) 7%, transparent) 60%
+      )
+      0 0 / 300% 100%;
+    animation: shimmer 1.8s linear infinite;
+  }
+}
+
 /* The job page's centrepiece: more room than the panels below it. */
 .job-top {
   container: job-top / inline-size;

@@ -12,8 +12,9 @@ import {
 } from './result';
 import './result.css';
 
+// The analysis wrote the path and run facts, so they show from the start.
 // The counts are written when the job settles. Until then the API sends 0,
-// which would read as "nothing imported", so the tiles show — instead.
+// which would read as "nothing imported", so those tiles shimmer instead.
 export function ImportResult({ job }: { job: ImportJob }) {
   const done = job.status === 'COMPLETED';
   // The file's column order: the mapping lists every column, left to right.
@@ -38,25 +39,25 @@ export function ImportResult({ job }: { job: ImportJob }) {
           <CountTile label="Rows" count={job.totalRows ?? undefined} />
           <CountTile
             label="Imported"
-            count={done ? job.importedRows : undefined}
+            count={job.importedRows}
+            pending={!done}
             tone="good"
           />
           <CountTile
             label="Failed"
-            count={done ? job.failedRows : undefined}
+            count={job.failedRows}
+            pending={!done}
             tone="bad"
           />
         </div>
 
-        {done && (
-          <div className="result-details">
-            <PathTaken
-              source={job.inferenceSource}
-              fallback={job.inferenceFallback}
-            />
-            <RunFacts job={job} />
-          </div>
-        )}
+        <div className="result-details">
+          <PathTaken
+            source={job.inferenceSource}
+            fallback={job.inferenceFallback}
+          />
+          <RunFacts job={job} />
+        </div>
 
         {done && job.errors.length > 0 && (
           <FailedRows
@@ -66,12 +67,17 @@ export function ImportResult({ job }: { job: ImportJob }) {
           />
         )}
 
-        {done && (
+        {done ? (
           <div className="result-footer">
             <p className="muted">{skippedLine(job.failedRows)}</p>
             <Link to="/contacts" className="button button-primary">
               View contacts
             </Link>
+          </div>
+        ) : (
+          <div className="result-footer" aria-hidden>
+            <span className="skeleton result-line-skeleton" />
+            <span className="skeleton result-button-skeleton" />
           </div>
         )}
       </div>
@@ -80,19 +86,31 @@ export function ImportResult({ job }: { job: ImportJob }) {
 }
 
 // Colour only a count worth noticing: a green 0 is noise.
+// Pending: the count isn't written yet, so a shimmering bar holds its place.
 function CountTile({
   label,
   count,
+  pending = false,
   tone,
 }: {
   label: string;
   count: number | undefined;
+  pending?: boolean;
   tone?: 'good' | 'bad';
 }) {
   return (
-    <div className="tile" data-tone={count ? tone : undefined}>
+    <div className="tile" data-tone={!pending && count ? tone : undefined}>
       <p className="label">{label}</p>
-      <p className="tile-count">{count ?? '—'}</p>
+      <p className="tile-count">
+        {pending ? (
+          <>
+            <span className="skeleton tile-skeleton" aria-hidden />
+            <span className="visually-hidden">pending</span>
+          </>
+        ) : (
+          <span className="tile-value">{count ?? '—'}</span>
+        )}
+      </p>
     </div>
   );
 }
@@ -100,6 +118,7 @@ function CountTile({
 // How the worker ran this job, as a spec sheet: label left, value right,
 // with a dim note where the raw number differs from the friendly one.
 function RunFacts({ job }: { job: ImportJob }) {
+  const running = job.status === 'IMPORTING';
   const facts: { label: string; value: ReactNode; note?: string }[] = [
     {
       label: 'Import attempts',
@@ -107,7 +126,14 @@ function RunFacts({ job }: { job: ImportJob }) {
         <>
           <span className="pips" aria-hidden>
             {Array.from({ length: job.maxAttempts }, (_, i) => (
-              <span key={i} className="pip" data-used={i < job.attempts} />
+              <span
+                key={i}
+                className="pip"
+                data-used={i < job.attempts}
+                // The claim bumps attempts, so the last used pip is the run
+                // a worker holds right now.
+                data-running={running && i === job.attempts - 1}
+              />
             ))}
           </span>
           {job.attempts} of {job.maxAttempts}

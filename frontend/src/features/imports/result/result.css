@@ -34,6 +34,34 @@
   font: 20px var(--mono);
 }
 
+@media (prefers-reduced-motion: no-preference) {
+  /* The Failed bar trails the Imported one: a wave, not a blink. */
+  .tile + .tile + .tile .skeleton {
+    animation-delay: 0.15s;
+  }
+
+  /* The count rises in when it replaces the bar. */
+  .tile-value {
+    display: inline-block;
+    animation: count-in 300ms ease-out;
+  }
+}
+
+@keyframes count-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+}
+
+/* The height of a digit, centred on the line, so nothing moves when the
+   count arrives. */
+.tile-skeleton {
+  width: 2.5em;
+  height: 0.8em;
+  vertical-align: middle;
+}
+
 /* Colour only a count worth noticing: a green 0 is noise. */
 .tile[data-tone='good'] .tile-count {
   color: var(--green);
@@ -256,6 +284,18 @@
   background: var(--green);
 }
 
+@media (prefers-reduced-motion: no-preference) {
+  .pip[data-running='true'] {
+    animation: pip-pulse 1.2s ease-in-out infinite alternate;
+  }
+}
+
+@keyframes pip-pulse {
+  to {
+    opacity: 0.35;
+  }
+}
+
 .result-errors {
   display: flex;
   flex-direction: column;
@@ -280,6 +320,19 @@
 
 .result-note {
   font-size: 12px;
+}
+
+/* The footer's line and button while the counts aren't in: the same
+   size as the real ones, so the panel doesn't jump when they arrive. */
+.result-line-skeleton {
+  width: 220px;
+  height: 12px;
+}
+
+.result-button-skeleton {
+  width: 120px;
+  height: var(--control);
+  border-radius: var(--radius);
 }
 
 .result-footer {
